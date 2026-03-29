@@ -6,18 +6,17 @@ health-check route.
 """
 
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
-from app.database import Base, engine
-from app.redis import init_redis, close_redis
-
 # Ensure model metadata is registered before create_all
 from app import models as _models  # noqa: F401
+from app.config import settings
+from app.database import Base, engine
+from app.redis import close_redis, init_redis
 
 # Routers
 from app.routers import analysis, calculator, matches
