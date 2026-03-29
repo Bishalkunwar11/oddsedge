@@ -1,0 +1,12 @@
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+addopts = "--tb=short"
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
