@@ -48,13 +48,13 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-[220px] min-h-screen bg-bg-raised border-r border-border-subtle">
+    <aside className="hidden md:flex flex-col w-[240px] sticky top-0 h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0 z-20">
       {/* Logo / Brand */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border-subtle">
-        <div className="w-8 h-8 rounded-lg bg-accent-green/20 flex items-center justify-center">
-          <span className="text-accent-green font-black text-sm">⚽</span>
+      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
+        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+          <span className="text-primary font-black text-sm">⚽</span>
         </div>
-        <span className="text-text-primary font-bold text-[15px] tracking-tight">
+        <span className="text-foreground font-bold text-[15px] tracking-tight">
           OddsEdge
         </span>
       </div>
@@ -73,16 +73,16 @@ export default function Sidebar() {
                 transition-all duration-150 ease-out
                 ${
                   isActive
-                    ? "bg-accent-green/10 text-accent-green"
-                    : "text-text-secondary hover:bg-bg-card hover:text-text-primary"
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-card hover:text-foreground"
                 }
               `}
             >
               <span
                 className={`transition-colors ${
                   isActive
-                    ? "text-accent-green"
-                    : "text-text-muted group-hover:text-text-secondary"
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-foreground"
                 }`}
               >
                 {item.icon}
@@ -90,14 +90,14 @@ export default function Sidebar() {
               {item.label}
               {item.live && (
                 <span className="ml-auto flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent-red animate-live-pulse" />
-                  <span className="text-[10px] font-bold text-accent-red uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
+                  <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">
                     Live
                   </span>
                 </span>
               )}
               {isActive && (
-                <span className="ml-auto w-1.5 h-5 rounded-full bg-accent-green" />
+                <span className="ml-auto w-1.5 h-5 rounded-full bg-primary" />
               )}
             </Link>
           );
@@ -105,8 +105,8 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-border-subtle">
-        <div className="text-[11px] text-text-dim">
+      <div className="px-4 py-4 border-t border-border mt-auto">
+        <div className="text-[11px] text-muted-foreground">
           © 2026 OddsEdge
         </div>
       </div>

@@ -62,8 +62,8 @@ export default function MatchesPage() {
       {/* Page header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">Matches</h1>
-          <p className="text-[13px] text-text-muted mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Matches</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">
             Upcoming fixtures with the latest odds from top bookmakers.
           </p>
         </div>
@@ -72,11 +72,11 @@ export default function MatchesPage() {
           <span
             className={`w-2 h-2 rounded-full ${
               isConnected
-                ? "bg-accent-green animate-live-pulse"
+                ? "bg-chart-2 animate-live-pulse"
                 : "bg-text-dim"
             }`}
           />
-          <span className="text-[11px] font-semibold text-text-dim">
+          <span className="text-[11px] font-semibold text-muted-foreground/70">
             {isConnected ? "Live" : "Offline"}
           </span>
         </div>
@@ -92,8 +92,8 @@ export default function MatchesPage() {
               px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-colors
               ${
                 activeFilter === f.key
-                  ? "bg-accent-green/10 text-accent-green"
-                  : "bg-bg-card text-text-secondary hover:bg-bg-card-hover hover:text-text-primary border border-border-subtle"
+                  ? "bg-chart-2/10 text-chart-2"
+                  : "bg-card text-muted-foreground hover:bg-secondary hover:text-foreground border border-border"
               }
             `}
           >
@@ -108,7 +108,7 @@ export default function MatchesPage() {
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="bg-bg-card border border-border-subtle rounded-xl p-5 animate-pulse"
+              className="bg-card border border-border rounded-xl p-5 animate-pulse"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="h-3 w-28 bg-border-subtle rounded" />
@@ -124,15 +124,15 @@ export default function MatchesPage() {
       )}
 
       {error && !isConnected && displayMatches.length === 0 && (
-        <div className="bg-accent-red/10 border border-accent-red/20 rounded-xl p-5 text-center">
-          <p className="text-[13px] font-semibold text-accent-red">{error}</p>
-          <p className="text-[12px] text-text-dim mt-1">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-5 text-center">
+          <p className="text-[13px] font-semibold text-destructive">{error}</p>
+          <p className="text-[12px] text-muted-foreground/70 mt-1">
             Make sure the backend is running at{" "}
-            <code className="text-text-secondary">localhost:8000</code>
+            <code className="text-muted-foreground">localhost:8000</code>
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-3 px-4 py-1.5 rounded-lg bg-bg-card border border-border-subtle text-[12px] font-semibold text-text-secondary hover:text-text-primary transition-colors"
+            className="mt-3 px-4 py-1.5 rounded-lg bg-card border border-border text-[12px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
           >
             Retry
           </button>
@@ -140,16 +140,16 @@ export default function MatchesPage() {
       )}
 
       {!loading && !error && displayMatches.length === 0 && (
-        <div className="bg-bg-card border border-border-subtle rounded-xl p-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-bg-input flex items-center justify-center mx-auto mb-3">
-            <svg className="w-7 h-7 text-text-dim" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <div className="bg-card border border-border rounded-xl p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-input flex items-center justify-center mx-auto mb-3">
+            <svg className="w-7 h-7 text-muted-foreground/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-[13px] font-semibold text-text-secondary">
+          <p className="text-[13px] font-semibold text-muted-foreground">
             No matches found
           </p>
-          <p className="text-[12px] text-text-dim mt-1">
+          <p className="text-[12px] text-muted-foreground/70 mt-1">
             Try a different league filter or check back later.
           </p>
         </div>

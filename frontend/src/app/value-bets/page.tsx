@@ -3,16 +3,16 @@ export default function ValueBetsPage() {
     <div className="space-y-6">
       {/* Page header */}
       <div>
-        <h1 className="text-2xl font-bold text-text-primary">Value Bets</h1>
-        <p className="text-[13px] text-text-muted mt-1">
+        <h1 className="text-2xl font-bold text-foreground">Value Bets</h1>
+        <p className="text-[13px] text-muted-foreground mt-1">
           Bets where the bookmaker&apos;s odds exceed the consensus fair
           probability — your edge over the market.
         </p>
       </div>
 
       {/* Threshold control */}
-      <div className="flex items-center gap-4 bg-bg-card border border-border-subtle rounded-xl p-4">
-        <label className="text-[12px] font-semibold text-text-muted whitespace-nowrap">
+      <div className="flex items-center gap-4 bg-card border border-border rounded-xl p-4">
+        <label className="text-[12px] font-semibold text-muted-foreground whitespace-nowrap">
           Min Edge
         </label>
         <input
@@ -20,9 +20,9 @@ export default function ValueBetsPage() {
           min={1}
           max={20}
           defaultValue={5}
-          className="flex-1 accent-accent-green"
+          className="flex-1 accent-chart-2"
         />
-        <span className="text-[14px] font-bold text-accent-green tabular-nums w-12 text-right">
+        <span className="text-[14px] font-bold text-chart-2 tabular-nums font-mono w-12 text-right">
           5.0%
         </span>
       </div>
@@ -30,18 +30,18 @@ export default function ValueBetsPage() {
       {/* Stats bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: "Value Bets Found", value: "—", accent: "text-accent-green" },
-          { label: "Avg Edge", value: "—", accent: "text-accent-green" },
-          { label: "Best Edge", value: "—", accent: "text-accent-amber" },
+          { label: "Value Bets Found", value: "—", accent: "text-chart-2" },
+          { label: "Avg Edge", value: "—", accent: "text-chart-2" },
+          { label: "Best Edge", value: "—", accent: "text-chart-3" },
         ].map((stat) => (
           <div
             key={stat.label}
-            className="bg-bg-card border border-border-subtle rounded-xl p-4"
+            className="bg-card border border-border rounded-xl p-4"
           >
-            <p className="text-[11px] font-semibold text-text-dim uppercase tracking-wider">
+            <p className="text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
               {stat.label}
             </p>
-            <p className={`text-2xl font-black mt-1 tabular-nums ${stat.accent}`}>
+            <p className={`text-2xl font-black mt-1 tabular-nums font-mono ${stat.accent}`}>
               {stat.value}
             </p>
           </div>
@@ -49,19 +49,19 @@ export default function ValueBetsPage() {
       </div>
 
       {/* Value bets list placeholder */}
-      <div className="bg-bg-card border border-border-subtle rounded-xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-border-subtle flex items-center justify-between">
-          <h2 className="text-[13px] font-semibold text-text-secondary">
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <div className="px-5 py-3 border-b border-border flex items-center justify-between">
+          <h2 className="text-[13px] font-semibold text-muted-foreground">
             Detected Value Bets
           </h2>
-          <span className="text-[11px] text-text-dim">
+          <span className="text-[11px] text-muted-foreground/70">
             Sorted by edge ↓
           </span>
         </div>
         <div className="p-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-bg-input flex items-center justify-center mx-auto mb-3">
+          <div className="w-14 h-14 rounded-2xl bg-input flex items-center justify-center mx-auto mb-3">
             <svg
-              className="w-7 h-7 text-text-dim"
+              className="w-7 h-7 text-muted-foreground/70"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -74,10 +74,10 @@ export default function ValueBetsPage() {
               />
             </svg>
           </div>
-          <p className="text-[13px] font-semibold text-text-secondary">
+          <p className="text-[13px] font-semibold text-muted-foreground">
             Scanning for value…
           </p>
-          <p className="text-[12px] text-text-dim mt-1">
+          <p className="text-[12px] text-muted-foreground/70 mt-1">
             Connect to the API to start finding edges against the sharp
             consensus line.
           </p>
