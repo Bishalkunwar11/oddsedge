@@ -8,7 +8,6 @@ dependency returns ``None`` so endpoints can degrade gracefully.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import redis.asyncio as aioredis
 
@@ -17,7 +16,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Module-level client — initialised in lifespan
-_redis_client: Optional[aioredis.Redis] = None
+_redis_client: aioredis.Redis | None = None
 
 
 async def init_redis() -> None:
@@ -46,7 +45,7 @@ async def close_redis() -> None:
         logger.info("Redis connection closed.")
 
 
-def get_redis() -> Optional[aioredis.Redis]:
+def get_redis() -> aioredis.Redis | None:
     """Return the current Redis client (or ``None`` if unavailable).
 
     Usage in FastAPI routes::

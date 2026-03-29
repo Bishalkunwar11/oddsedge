@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
+import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import redis.asyncio as aioredis
 
 from app.cache import build_cache_key, cache_get, cache_set
 from app.database import get_db

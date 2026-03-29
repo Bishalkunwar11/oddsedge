@@ -9,7 +9,6 @@ import math
 from collections.abc import Sequence
 from itertools import combinations
 
-
 # ---------------------------------------------------------------------------
 # Odds conversion
 # ---------------------------------------------------------------------------

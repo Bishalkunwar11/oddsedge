@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import redis.asyncio as aioredis
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 async def cache_get(
-    redis_client: Optional[aioredis.Redis],
+    redis_client: aioredis.Redis | None,
     key: str,
 ) -> Any | None:
     """Attempt to read a cached JSON value.
@@ -38,7 +38,7 @@ async def cache_get(
 
 
 async def cache_set(
-    redis_client: Optional[aioredis.Redis],
+    redis_client: aioredis.Redis | None,
     key: str,
     value: Any,
     ttl: int | None = None,

@@ -4,7 +4,7 @@ Translates the existing SQLite schema from ``src/db_manager.py`` into
 PostgreSQL-compatible models with proper types, indexes, and relationships.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import (
     DateTime,
