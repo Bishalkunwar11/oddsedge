@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useBetSlipStore,
@@ -42,6 +43,29 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
   
   const combinedOdds = totalGlobalOdds();
   const impliedProb = combinedOdds > 0 ? (1 / combinedOdds) * 100 : 0;
+
+  // Engine 1.3: Smart Parlay & Line Shopper Evaluation Mock
+  const hasLowUnder = selections.some(s => s.outcomeName.toLowerCase().includes('under 1.5') || s.outcomeName.toLowerCase().includes('under 2.5'));
+  const hasGoalscorer = selections.some(s => s.market.toLowerCase().includes('scorer') || s.outcomeName.toLowerCase().includes('score') || s.market.toLowerCase().includes('goal'));
+  
+  const hasContradiction = hasLowUnder && hasGoalscorer;
+  let smartGrade = "A";
+  let gradeColor = "bg-green-500/20 text-green-400 border-green-500/30";
+  if (hasContradiction) {
+    smartGrade = "F";
+    gradeColor = "bg-destructive/20 text-destructive border-destructive/30";
+  } else if (selections.length >= 6) {
+    smartGrade = "C";
+    gradeColor = "bg-yellow-500/20 text-yellow-500 border-yellow-500/30";
+  } else if (selections.length >= 4) {
+    smartGrade = "B";
+    gradeColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
+  }
+
+  // Mock pricing variations
+  const topOpt = combinedOdds * 1.05;
+  const midOpt = combinedOdds * 0.98;
+  const lowOpt = combinedOdds * 0.92;
 
   // Pulse effect ready check
   const isReadyToPlace = selections.length > 0 && totalWager > 0;
@@ -154,11 +178,31 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
               className="mx-3 overflow-hidden"
             >
               <div className="rounded-xl bg-gradient-to-r from-primary/10 to-chart-5/10 border border-primary/20 p-3">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider">
-                    ⭐ Live Summary
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Smart Parlay Engine
                   </span>
+                  
+                  {selections.length > 1 && (
+                    <div className={`flex items-center gap-2 px-2 py-0.5 rounded-full border ${gradeColor}`}>
+                      <span className="text-[10px] uppercase font-bold tracking-widest">Grade</span>
+                      <span className="text-[12px] font-black">{smartGrade}</span>
+                    </div>
+                  )}
                 </div>
+
+                {hasContradiction && selections.length > 1 && (
+                  <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 flex gap-2 items-start">
+                    <span className="text-destructive text-[12px]">⚠️</span>
+                    <p className="text-[10px] text-destructive font-semibold leading-tight">
+                      Contradiction Detected: You have a low Under line mixed with a player to score prop. High risk of exclusion!
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-2">
                   <SummaryCell label="Legs" value={String(selections.length)} />
                   <SummaryCell label="Combined Odds" value={`${combinedOdds.toFixed(2)}x`} accent="green" />
@@ -166,7 +210,7 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                   <SummaryCell label="Net Profit" value={`$${totalProfit.toFixed(2)}`} accent={totalProfit > 0 ? "green" : "red"} />
                 </div>
                 <div className="mt-2 text-center text-[10px] text-muted-foreground/70">
-                  ⚠️ All {selections.length} legs must win · Implied: {impliedProb.toFixed(1)}%
+                  All {selections.length} legs must win · Implied: {impliedProb.toFixed(1)}%
                 </div>
               </div>
             </motion.div>
@@ -283,6 +327,43 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
             )}
           </AnimatePresence>
 
+          {/* Line Shopper Visualization */}
+          <AnimatePresence>
+            {isParlay && selections.length > 1 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden space-y-2 pb-3 border-b border-border/50"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-chart-3 uppercase tracking-wider flex items-center gap-1">
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63-.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Line Shopper
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">Best Value Found</span>
+                </div>
+                
+                <div className="space-y-1.5 mt-1">
+                  <div className="flex items-center justify-between px-2 py-1.5 bg-chart-3/10 border border-chart-3/20 rounded">
+                    <span className="text-[11px] font-semibold text-foreground">DraftKings</span>
+                    <span className="text-[12px] font-mono font-bold text-chart-3">{topOpt.toFixed(2)}x</span>
+                  </div>
+                  <div className="flex items-center justify-between px-2 py-1 bg-card border border-border rounded">
+                    <span className="text-[11px] text-muted-foreground">FanDuel</span>
+                    <span className="text-[12px] font-mono text-muted-foreground">{midOpt.toFixed(2)}x</span>
+                  </div>
+                  <div className="flex items-center justify-between px-2 py-1 bg-card border border-border rounded">
+                    <span className="text-[11px] text-muted-foreground opacity-70">BetMGM</span>
+                    <span className="text-[12px] font-mono text-muted-foreground opacity-70">{lowOpt.toFixed(2)}x</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Master Checkout Metrics */}
           <div className="flex items-center justify-between">
             <div className="flex flex-col">
@@ -319,6 +400,28 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                   : "Place Bet"}
             </span>
           </motion.button>
+
+          {/* Social Share / Tail My Slip (Engine 4.2) */}
+          <AnimatePresence>
+            {selections.length > 0 && (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                onClick={() => {
+                   const shareLink = `https://oddsedge.app/tail/${Math.random().toString(36).substring(7)}`;
+                   navigator.clipboard.writeText(shareLink);
+                   alert("Tail Link Copied to Clipboard!");
+                }}
+                className="w-full mt-2 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.2em] bg-secondary text-secondary-foreground border border-border/50 hover:bg-secondary/80 transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Tail My Slip
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
           </motion.aside>
         )}

@@ -10,7 +10,7 @@ from app.cache import build_cache_key, cache_get, cache_set
 from app.config import DEFAULT_EDGE_THRESHOLD
 from app.database import get_db
 from app.redis import get_redis
-from app.schemas import ArbitrageResponse, ValueBetResponse
+from app.schemas import ArbitrageResponse, ValueBetResponse, PlayerPropStats
 from app.services.matches import get_latest_odds
 from app.services.odds_analysis import find_arbitrage, find_value_bets
 
@@ -76,3 +76,57 @@ async def list_arbitrage(
     await cache_set(redis_client, cache_key, result)
 
     return result
+
+
+@router.get("/player/{player_name}/props", response_model=PlayerPropStats)
+async def get_player_prop_stats(
+    player_name: str,
+    prop_type: str = Query(default="shots_on_target", description="E.g. shots_on_target, goals, assists"),
+    line: float = Query(default=1.5, ge=0.5, description="The betting line to grade against"),
+    opponent: str | None = Query(default=None, description="Opponent name for H2H filtering"),
+) -> dict:
+    """Fetch specific H2H player data and historical success rates for props.
+    
+    (Mocked for Engine 2.1 to isolate Frontend UI dashboard development)
+    """
+    import random
+    from datetime import datetime, timedelta
+
+    # Generate 5 mock logs
+    last_5_games = []
+    hits = 0
+    now = datetime.utcnow()
+    
+    opponents = ["Arsenal", "Chelsea", "Man Utd", "Liverpool", "Spurs", "Newcastle"]
+    for i in range(5):
+        # random value clustered around the line
+        val = max(0.0, round(random.gauss(line, int(line * 1.5)), 0))
+        is_hit = val >= line
+        if is_hit:
+            hits += 1
+            
+        last_5_games.append({
+            "opponent": opponents[i % len(opponents)],
+            "date": (now - timedelta(days=(i+1)*7)).strftime("%Y-%m-%d"),
+            "value": val,
+            "hit": is_hit
+        })
+
+    # Prepare H2H dict lazily
+    h2h_vs_opponent = None
+    if opponent:
+        h2h_vs_opponent = {
+            "opponent": opponent,
+            "games_played": 3,
+            "avg_value": round(line * random.uniform(0.8, 1.4), 1)
+        }
+
+    return {
+        "player_name": player_name.replace("+", " ").title(),
+        "prop_type": prop_type,
+        "line": line,
+        "last_5_games": last_5_games,
+        "h2h_vs_opponent": h2h_vs_opponent,
+        "hit_rate_l5": (hits / 5) * 100.0,
+        "hit_rate_szn": random.choice([45.5, 52.0, 68.3, 75.0, 81.2])  # Realistic variance
+    }

@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    Boolean,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -86,6 +87,11 @@ class Odds(Base):
         nullable=False,
         server_default=func.now(),
     )
+
+    # Classification fields for Smart Parlay & Line Shopper Engine
+    prop_type: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    player_name: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    is_main_market: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="1")
 
     # Relationship
     match: Mapped["Match"] = relationship(back_populates="odds")

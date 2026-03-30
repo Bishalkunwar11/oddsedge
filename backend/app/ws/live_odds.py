@@ -60,9 +60,29 @@ async def live_odds_ws(websocket: WebSocket) -> None:
 
         async def _broadcast_loop() -> None:
             """Periodically fetch and broadcast latest odds."""
+            import random
+            
+            # Engine 4.1: Sharp Money Alerts 
+            SHARP_ALERTS = [
+                "Whale Alert 🐋: $50K tracked on Arsenal ML at Emirates.",
+                "Sharp Movement 📉: Man City Under 2.5 getting hammered across Asian books.",
+                "Injury Fade 🚑: Huge late money against Chelsea following Palmer injury leak.",
+                "Pro Syndicate 🎯: Group 7 laying the draw heavily in Juventus vs Milan.",
+                "Line Shopping 🏎️: FanDuel extremely slow to move Over lines. Market is +120 elsewhere."
+            ]
+            
             while True:
                 await asyncio.sleep(settings.ws_broadcast_interval)
                 try:
+                    # 1. Periodically send a sharp alert (Engine 4.1 mock action)
+                    if random.random() > 0.6:
+                        await manager.broadcast({
+                            "type": "sharp_alert",
+                            "message": random.choice(SHARP_ALERTS),
+                            "timestamp": asyncio.get_event_loop().time()
+                        })
+
+                    # 2. Main odds update
                     async with async_session_factory() as db:
                         odds_rows = await get_latest_odds(db)
                     await manager.broadcast(
