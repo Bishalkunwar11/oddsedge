@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   useBetSlipStore,
@@ -399,6 +400,28 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                   : "Place Bet"}
             </span>
           </motion.button>
+
+          {/* Social Share / Tail My Slip (Engine 4.2) */}
+          <AnimatePresence>
+            {selections.length > 0 && (
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                onClick={() => {
+                   const shareLink = `https://oddsedge.app/tail/${Math.random().toString(36).substring(7)}`;
+                   navigator.clipboard.writeText(shareLink);
+                   alert("Tail Link Copied to Clipboard!");
+                }}
+                className="w-full mt-2 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-[0.2em] bg-secondary text-secondary-foreground border border-border/50 hover:bg-secondary/80 transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Tail My Slip
+              </motion.button>
+            )}
+          </AnimatePresence>
         </div>
           </motion.aside>
         )}
