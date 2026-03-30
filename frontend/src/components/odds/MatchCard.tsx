@@ -1,12 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { Match, MatchOdds } from "@/lib/api";
 import {
   useBetSlipStore,
   makeSelectionId,
   type BetSelection,
 } from "@/store/betSlipStore";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import OddsButton from "./OddsButton";
 
 interface MatchCardProps {
@@ -20,6 +21,26 @@ interface MatchCardProps {
  */
 export default function MatchCard({ match }: MatchCardProps) {
   const { toggleSelection, isSelected } = useBetSlipStore();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [propStats, setPropStats] = useState<any>(null);
+  const [loadingProp, setLoadingProp] = useState(false);
+
+  // Fetch mock stats when opened
+  useEffect(() => {
+    if (isDrawerOpen && !propStats && !loadingProp) {
+        setLoadingProp(true);
+        // Map to mock python fastAPI hitting loop
+        const pName = encodeURIComponent(match.home_team + " Striker");
+        const opp = encodeURIComponent(match.away_team);
+        fetch(`http://127.0.0.1:8000/api/player/${pName}/props?line=1.5&opponent=${opp}`)
+          .then((r) => r.json())
+          .then((data) => {
+             setPropStats(data);
+             setLoadingProp(false);
+          })
+          .catch(() => setLoadingProp(false));
+    }
+  }, [isDrawerOpen, propStats, loadingProp, match.home_team, match.away_team]);
 
   // Extract h2h odds — group by outcome_name, pick best price per outcome
   const h2hOdds = match.odds.filter((o) => o.market === "h2h");
@@ -65,11 +86,53 @@ export default function MatchCard({ match }: MatchCardProps) {
       <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider relative z-10">
+      <div className="flex items-center justify-between mb-2 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider relative z-10">
         <span className="flex items-center gap-1.5">
           <span>⚽</span> {leagueShort}
         </span>
         <span className="tabular-nums font-mono">🕐 {kickoff}</span>
+      </div>
+
+      {/* Engine 3.2 Tactical Context Badges */}
+      <div className="flex flex-wrap gap-1.5 mb-3 relative z-10">
+        {(() => {
+          // Deterministically map context off the match_id
+          const seed = match.match_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+          
+          const weathers = [
+            { id: 0, text: "Clear", icon: "☀️", cls: "bg-card text-muted-foreground border border-border" },
+            { id: 1, text: "Heavy Rain (Under 2.5 Edge)", icon: "🌧️", cls: "bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold" },
+            { id: 2, text: "Snow (Under 1.5 Edge)", icon: "❄️", cls: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 font-bold" }
+          ];
+          const refs = [
+            { id: 0, text: "Average Ref (3.8 YC/G)", icon: "⚖️", cls: "bg-card text-muted-foreground border border-border" },
+            { id: 1, text: "Strict Ref (5.2 YC/G)", icon: "🟨", cls: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 font-bold" }
+          ];
+          
+          const w = weathers[seed % 3];
+          const r = refs[seed % 2];
+          const isFatigued = (seed % 10) > 7;
+
+          return (
+            <>
+              {w.id !== 0 && (
+                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${w.cls}`}>
+                  <span>{w.icon}</span> {w.text}
+                </div>
+              )}
+              {r.id !== 0 && (
+                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${r.cls}`}>
+                  <span>{r.icon}</span> {r.text}
+                </div>
+              )}
+              {isFatigued && (
+                <div className="px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide bg-destructive/10 text-destructive border border-destructive/30 font-bold">
+                  <span>⚠️</span> {match.away_team} Rest Disadvantage
+                </div>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* 
@@ -188,6 +251,78 @@ export default function MatchCard({ match }: MatchCardProps) {
             <div className="h-[44px] flex items-center justify-center border border-transparent">-</div>
           )}
         </div>
+      </div>
+
+      {/* Engine 2.2 Featured Prop Trigger */}
+      <div className="mt-4 pt-3 border-t border-border/50">
+        <button 
+          onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+          className="w-full flex items-center justify-between group/prop transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[14px]">🔥</span>
+            <div className="flex flex-col items-start">
+              <span className="text-[11px] font-bold text-foreground">Featured Prop: {match.home_team} Striker</span>
+              <span className="text-[10px] text-muted-foreground">O 1.5 Shots on Target</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="px-2 py-0.5 rounded bg-chart-2/10 text-chart-2 text-[10px] font-bold">+140</div>
+            <motion.svg 
+              animate={{ rotate: isDrawerOpen ? 180 : 0 }} 
+              className="w-4 h-4 text-muted-foreground group-hover/prop:text-primary transition-colors" 
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </motion.svg>
+          </div>
+        </button>
+
+        <AnimatePresence>
+          {isDrawerOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-4 pb-1">
+                {loadingProp || !propStats ? (
+                  <div className="animate-pulse space-y-2">
+                    <div className="h-6 bg-input rounded w-full"></div>
+                    <div className="h-10 bg-input rounded w-full mt-2"></div>
+                  </div>
+                ) : (
+                  <div className="bg-input/30 rounded-lg p-3 border border-border">
+                    <div className="flex justify-between items-center mb-3">
+                      <div>
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Hit Rate (SZN)</div>
+                        <div className="text-[14px] font-black text-chart-2 tabular-nums">{propStats.hit_rate_szn}%</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">H2H vs {match.away_team}</div>
+                        <div className="text-[12px] font-semibold text-foreground">{propStats.h2h_vs_opponent?.avg_value || "-"} avg / gm</div>
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1.5">Last 5 Matches</div>
+                    <div className="flex gap-1" title="Green = Hit, Red = Miss">
+                      {propStats.last_5_games.map((game: any, i: number) => (
+                        <div 
+                           key={i} 
+                           className={`flex-1 h-6 rounded flex items-center justify-center text-[10px] font-bold ${game.hit ? 'bg-chart-2/20 text-chart-2 border border-chart-2/30' : 'bg-destructive/10 text-destructive/70 border border-destructive/20'}`}
+                           title={`vs ${game.opponent}: ${game.value} (Line: ${propStats.line})`}
+                        >
+                          {game.value}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.div>
   );
