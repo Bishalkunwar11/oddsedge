@@ -15,24 +15,23 @@ export default function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Full width Top Navigation */}
+      {/* Fixed Top Navigation bounds */}
       <TopBar onToggleBetSlip={() => setBetSlipOpen((prev) => !prev)} />
       
-      {/* Real-time Ticker Component beneath TopBar */}
+      {/* Real-time Ticker Component pinned to root */}
       <LiveTicker />
 
+      {/* Main geometric plane */}
       <div className="flex flex-1 overflow-hidden relative">
-        {/* Left sidebar navigation */}
         <Sidebar />
 
-        {/* Main content area */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6 lg:ml-0 bg-background/50">
-          <div className="max-w-5xl mx-auto">
+        {/* Dynamic scroll plane optimized for Phase 5 cascade variants */}
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6 lg:ml-0 bg-background/50 relative scroll-smooth will-change-transform">
+          <div className="max-w-5xl mx-auto w-full">
             {children}
           </div>
         </main>
 
-        {/* Right bet slip sidebar */}
         <BetSlip isOpen={betSlipOpen} onClose={() => setBetSlipOpen(false)} />
       </div>
     </div>

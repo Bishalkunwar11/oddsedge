@@ -62,16 +62,19 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
       </AnimatePresence>
 
       {/* Slide-out panel */}
-      <aside
-        className={`
-          fixed top-0 right-0 z-50 h-full w-[340px] bg-sidebar border-l border-border
-          flex flex-col shadow-2xl
-          transform transition-transform duration-300 ease-out
-          ${isOpen ? "translate-x-0" : "translate-x-full"}
-          lg:relative lg:z-auto
-          ${isOpen ? "lg:translate-x-0" : "lg:translate-x-full lg:w-0 lg:border-0 lg:overflow-hidden"}
-        `}
-      >
+      <AnimatePresence>
+        {isOpen && (
+          <motion.aside
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className={`
+              fixed top-0 right-0 z-50 h-full w-[340px] bg-sidebar border-l border-border
+              flex flex-col shadow-2xl
+              lg:relative lg:z-auto lg:h-full lg:translate-x-0 lg:border-l
+            `}
+          >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-border shrink-0 bg-sidebar">
           <div className="flex items-center gap-2">
@@ -132,8 +135,8 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                 {isActive && (
                   <motion.div
                     layoutId="active-tab-indicator"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary shadow-[0_0_10px_rgba(30,58,138,0.8)]"
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   />
                 )}
               </button>
@@ -212,10 +215,10 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                 <motion.div
                   key={sel.id}
                   layout
-                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                  initial={{ opacity: 0, scale: 0.9, y: 15 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  transition={{ duration: 0.2 }}
+                  exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
                 >
                   <SelectionCard
                     index={idx + 1}
@@ -293,12 +296,14 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
           </div>
 
           {/* Place bet button with glowing pulse if ready */}
-          <button
+          <motion.button
+            whileTap={isReadyToPlace ? { scale: 0.95 } : {}}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
             disabled={!isReadyToPlace}
             className={`
               relative w-full py-3.5 rounded-lg text-[13px] font-bold uppercase tracking-widest overflow-hidden transition-all duration-300
               ${isReadyToPlace 
-                  ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(30,58,138,0.4)] hover:bg-primary/90 active:scale-[0.98] animate-in" 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 animate-in border border-transparent shadow-[0_0_20px_rgba(30,58,138,0.4)] hover:shadow-[0_0_30px_rgba(30,58,138,0.8)]" 
                   : "bg-input text-muted-foreground opacity-50 cursor-not-allowed border border-border"
               }
             `}
@@ -313,9 +318,11 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                   ? `Place ${selections.length} Singles`
                   : "Place Bet"}
             </span>
-          </button>
+          </motion.button>
         </div>
-      </aside>
+          </motion.aside>
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -372,7 +379,11 @@ function SelectionCard({
   const probPct = Math.round(impliedProb * 100);
 
   return (
-    <div className="bg-card border border-border shadow-sm rounded-lg p-3 relative overflow-hidden group">
+    <motion.div 
+      whileHover={{ scale: 1.01, y: -2 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className="bg-card border border-border shadow-md hover:shadow-lg rounded-lg p-3 relative overflow-hidden group hover:border-primary/30 transition-colors"
+    >
       {/* Accent strip */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-chart-2/50" />
       
@@ -447,6 +458,6 @@ function SelectionCard({
 
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

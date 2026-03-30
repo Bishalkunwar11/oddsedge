@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   {
@@ -48,65 +50,84 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden md:flex flex-col w-[240px] sticky top-0 h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0 z-20">
-      {/* Logo / Brand */}
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-border">
-        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-          <span className="text-primary font-black text-sm">⚽</span>
-        </div>
-        <span className="text-foreground font-bold text-[15px] tracking-tight">
+    <aside className="hidden md:flex flex-col w-[240px] sticky top-0 h-screen overflow-y-auto bg-sidebar border-r border-border shrink-0 z-20 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.3)]">
+      {/* Brand area */}
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-border/50">
+        <picture>
+          <img src="/logo.png" alt="OddsEdge Logo" className="w-7 h-7 object-contain drop-shadow" />
+        </picture>
+        <span className="text-foreground font-black text-[16px] tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary to-[#2B6CB5]">
           OddsEdge
         </span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 px-3 py-6 space-y-2 relative">
         {NAV_ITEMS.map((item) => {
           const isActive =
             pathname === item.href || pathname?.startsWith(item.href + "/");
+
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`
-                group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-semibold
-                transition-all duration-150 ease-out
-                ${
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-card hover:text-foreground"
-                }
-              `}
-            >
-              <span
-                className={`transition-colors ${
+            <Link key={item.href} href={item.href} className="block outline-none">
+              <motion.div
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className={cn(
+                  "group relative flex items-center gap-3 px-4 py-3 text-[13px] font-semibold rounded-lg overflow-hidden transition-colors duration-200",
                   isActive
                     ? "text-primary"
-                    : "text-muted-foreground group-hover:text-foreground"
-                }`}
+                    : "text-muted-foreground hover:bg-white/5 hover:text-foreground"
+                )}
               >
-                {item.icon}
-              </span>
-              {item.label}
-              {item.live && (
-                <span className="ml-auto flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse" />
-                  <span className="text-[10px] font-bold text-destructive uppercase tracking-wider">
-                    Live
-                  </span>
+                {/* Antigravity active state pill background sliding via layoutId */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNavPill"
+                    className="absolute inset-0 bg-primary/10 rounded-lg shadow-[inset_0_0_12px_rgba(30,58,138,0.2)]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  />
+                )}
+                
+                {/* Active Route glowing left-border */}
+                {isActive && (
+                  <motion.div
+                    layoutId="active-sidebar-border"
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-primary shadow-[0_0_15px_rgba(30,58,138,1)] rounded-r-md"
+                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  />
+                )}
+
+                <span
+                  className={cn(
+                    "z-10 transition-transform duration-300",
+                    isActive ? "scale-110" : "group-hover:scale-110"
+                  )}
+                >
+                  {item.icon}
                 </span>
-              )}
-              {isActive && (
-                <span className="ml-auto w-1.5 h-5 rounded-full bg-primary" />
-              )}
+
+                <span className="z-10 relative drop-shadow-sm">{item.label}</span>
+
+                {item.live && (
+                  <span className="ml-auto flex items-center gap-1.5 z-10 bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/20 shadow-sm backdrop-blur-sm">
+                    <span className="w-1.5 h-1.5 rounded-full bg-destructive animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                    <span className="text-[9px] font-black text-destructive uppercase tracking-wider">
+                      Live
+                    </span>
+                  </span>
+                )}
+              </motion.div>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="px-4 py-4 border-t border-border mt-auto">
-        <div className="text-[11px] text-muted-foreground">
+      <div className="px-5 py-5 border-t border-border/50 mt-auto bg-gradient-to-t from-background/50 to-transparent">
+        <div className="text-[11px] font-semibold text-muted-foreground/60 transition-colors hover:text-muted-foreground cursor-default drop-shadow-sm">
           © 2026 OddsEdge
         </div>
       </div>
