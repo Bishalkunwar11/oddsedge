@@ -124,15 +124,15 @@ body {
    Custom scrollbar (thin, blends with dark theme)
    ---------------------------------------------------------------- */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: var(--color-bg-base);
 }
 ::-webkit-scrollbar-thumb {
   background: var(--color-border-mid);
-  border-radius: 3px;
+  border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-dim);

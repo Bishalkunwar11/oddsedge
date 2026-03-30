@@ -1,17 +1,39 @@
+"use client";
+
+import { motion, Variants } from "framer-motion";
+
 export default function ValueBetsPage() {
+  const container: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: 0.1 },
+    },
+  };
+
+  const item: Variants = {
+    hidden: { opacity: 0, y: 15 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 25 } },
+  };
+
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
       {/* Page header */}
-      <div>
+      <motion.div variants={item}>
         <h1 className="text-2xl font-bold text-foreground">Value Bets</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           Bets where the bookmaker&apos;s odds exceed the consensus fair
           probability — your edge over the market.
         </p>
-      </div>
+      </motion.div>
 
       {/* Threshold control */}
-      <div className="flex items-center gap-4 bg-card border border-border rounded-xl p-4">
+      <motion.div variants={item} className="flex items-center gap-4 bg-card border border-border rounded-xl p-4">
         <label className="text-[12px] font-semibold text-muted-foreground whitespace-nowrap">
           Min Edge
         </label>
@@ -25,10 +47,10 @@ export default function ValueBetsPage() {
         <span className="text-[14px] font-bold text-chart-2 tabular-nums font-mono w-12 text-right">
           5.0%
         </span>
-      </div>
+      </motion.div>
 
       {/* Stats bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <motion.div variants={item} className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           { label: "Value Bets Found", value: "—", accent: "text-chart-2" },
           { label: "Avg Edge", value: "—", accent: "text-chart-2" },
@@ -46,10 +68,10 @@ export default function ValueBetsPage() {
             </p>
           </div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Value bets list placeholder */}
-      <div className="bg-card border border-border rounded-xl overflow-hidden">
+      <motion.div variants={item} className="bg-card border border-border rounded-xl overflow-hidden">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <h2 className="text-[13px] font-semibold text-muted-foreground">
             Detected Value Bets
@@ -82,7 +104,7 @@ export default function ValueBetsPage() {
             consensus line.
           </p>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

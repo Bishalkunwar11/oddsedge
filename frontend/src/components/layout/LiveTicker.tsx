@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 // Mock Data for Phase 4 implementation until Database Proxy seeding is complete
 const MOCK_LIVE_MATCHES = [
@@ -31,15 +32,19 @@ export default function LiveTicker() {
       <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-sidebar to-transparent z-10" />
       <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-sidebar to-transparent z-10" />
 
-      {/* 
-        Marquee track container 
-        We render the list TWICE inside the same flowing div so that `--animate-marquee` 
-        (which loops from 0 to -50%) will loop seamlessly without a visual jump.
-      */}
-      <div className="flex w-max animate-marquee hover:[animation-play-state:paused] whitespace-nowrap">
+      {/* Flawless Framer Motion infinite scroll loop */}
+      <motion.div 
+        animate={{ x: [0, "-50%"] }}
+        transition={{
+          ease: "linear",
+          duration: 30,
+          repeat: Infinity,
+        }}
+        className="flex w-max whitespace-nowrap hover:[animation-play-state:paused]"
+      >
         <TickerContent items={MOCK_LIVE_MATCHES} />
         <TickerContent items={MOCK_LIVE_MATCHES} />
-      </div>
+      </motion.div>
     </div>
   );
 }

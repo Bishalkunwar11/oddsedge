@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 
 interface OddsButtonProps {
   label?: string;
@@ -14,7 +15,7 @@ interface OddsButtonProps {
 /**
  * Clickable odds button that flashes green on price increase and red on
  * price decrease, mimicking live sportsbook behaviour. Includes "Suspended"
- * market state locking.
+ * market state locking and Antigravity framer-motion physics.
  */
 export default function OddsButton({
   label,
@@ -46,24 +47,27 @@ export default function OddsButton({
   const arrow = flash === "up" ? "▲" : flash === "down" ? "▼" : "";
 
   return (
-    <button
+    <motion.button
+      whileHover={!isSuspended ? { scale: 1.02 } : {}}
+      whileTap={!isSuspended ? { scale: 0.92, y: 2 } : {}}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
       onClick={isSuspended ? undefined : onClick}
       disabled={isSuspended}
       className={`
         group relative flex flex-row items-center justify-between
         w-full min-h-[44px] min-w-[72px] py-2 px-3 rounded-lg overflow-hidden
-        border transition-all duration-200
+        border transition-colors duration-200
         ${
           isSuspended
             ? "opacity-50 bg-secondary/30 border-border cursor-not-allowed pointer-events-none grayscale"
-            : `hover:scale-[1.02] active:scale-[0.98] ${
+            : `hover:border-primary/50 hover:bg-white/5 ${
                 isSelected
-                  ? "bg-primary border-primary text-primary-foreground shadow-sm"
-                  : "bg-input border-border text-foreground hover:border-primary/50 hover:bg-primary/5"
+                  ? "bg-primary border-primary text-primary-foreground shadow-[0_4px_14px_0_rgba(23,62,115,0.39)]"
+                  : "bg-input border-border text-foreground hover:shadow-md"
               }`
         }
-        ${!isSuspended && flash === "up" ? "!border-chart-2 !bg-chart-2/15 !text-chart-2" : ""}
-        ${!isSuspended && flash === "down" ? "!border-destructive !bg-destructive/15 !text-destructive" : ""}
+        ${!isSuspended && flash === "up" ? "!border-chart-2 !bg-chart-2/15 !text-chart-2 shadow-[0_0_15px_rgba(34,197,94,0.4)]" : ""}
+        ${!isSuspended && flash === "down" ? "!border-destructive !bg-destructive/15 !text-destructive shadow-[0_0_15px_rgba(239,68,68,0.4)]" : ""}
         ${className}
       `}
       aria-label={`${label ? label + " " : ""}odds ${price.toFixed(2)}${isSuspended ? " suspended" : ""}`}
@@ -74,7 +78,7 @@ export default function OddsButton({
       {label && (
         <span
           className={`text-[12px] font-semibold tracking-wide ${
-            isSelected ? "text-primary-foreground/90" : "text-muted-foreground"
+            isSelected ? "text-primary-foreground/90" : "text-muted-foreground group-hover:text-foreground/80"
           }`}
         >
           {label}
@@ -127,6 +131,6 @@ export default function OddsButton({
           style={{ backgroundImage: "repeating-linear-gradient(45deg, #000 0, #000 1px, transparent 1px, transparent 4px)" }}
         />
       )}
-    </button>
+    </motion.button>
   );
 }

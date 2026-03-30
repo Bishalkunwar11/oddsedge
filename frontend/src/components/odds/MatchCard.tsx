@@ -6,6 +6,7 @@ import {
   makeSelectionId,
   type BetSelection,
 } from "@/store/betSlipStore";
+import { motion } from "framer-motion";
 import OddsButton from "./OddsButton";
 
 interface MatchCardProps {
@@ -13,7 +14,7 @@ interface MatchCardProps {
 }
 
 /**
- * High-Fidelity DraftKings-style match card using CSS Grid.
+ * High-Fidelity DraftKings-style match card using CSS Grid and Antigravity UX Motion.
  * Displays Away Team, Draw, and Home Team across 3 key markets: Spread, Total, and Moneyline.
  * Spread and Total are mock data placeholders until the proxy bridges them.
  */
@@ -55,9 +56,16 @@ export default function MatchCard({ match }: MatchCardProps) {
     isSelected(makeSelectionId(match.match_id, market, outcome));
 
   return (
-    <div className="bg-card border border-border rounded-xl hover:border-border/80 transition-colors group p-4 sm:p-5">
+    <motion.div
+      whileHover={{ y: -4, scale: 1.005 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className="bg-card border border-border/60 hover:border-primary/50 rounded-xl transition-colors duration-300 group p-4 sm:p-5 hover:shadow-[0_15px_30px_-5px_rgba(30,58,138,0.3)] relative overflow-hidden"
+    >
+      {/* Edge gradient glow on hover */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-3 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+      <div className="flex items-center justify-between mb-3 text-[11px] font-semibold text-muted-foreground/70 uppercase tracking-wider relative z-10">
         <span className="flex items-center gap-1.5">
           <span>⚽</span> {leagueShort}
         </span>
@@ -181,7 +189,7 @@ export default function MatchCard({ match }: MatchCardProps) {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

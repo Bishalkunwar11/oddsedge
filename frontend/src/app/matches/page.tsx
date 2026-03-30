@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { fetchMatches, type Match } from "@/lib/api";
 import { useLiveOdds } from "@/hooks/useLiveOdds";
 import MatchCard from "@/components/odds/MatchCard";
+import { motion, Variants } from "framer-motion";
 
 const LEAGUE_FILTERS = [
   { label: "All Leagues", key: null },
@@ -56,6 +57,21 @@ export default function MatchesPage() {
       cancelled = true;
     };
   }, []);
+
+  const container: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  };
+
+  const item: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 400, damping: 25 } },
+  };
 
   return (
     <div className="space-y-6">
@@ -156,11 +172,18 @@ export default function MatchesPage() {
       )}
 
       {displayMatches.length > 0 && (
-        <div className="space-y-3">
+        <motion.div 
+          className="space-y-3"
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
           {displayMatches.map((match) => (
-            <MatchCard key={match.match_id} match={match} />
+            <motion.div key={match.match_id} variants={item}>
+              <MatchCard match={match} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       )}
     </div>
   );
