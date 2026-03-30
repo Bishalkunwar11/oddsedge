@@ -297,6 +297,14 @@ class PlayerPropStats(BaseModel):
 # Contextual Edge (Engine 3)
 # ---------------------------------------------------------------------------
 
+class HistoricalMatch(BaseModel):
+    """Simple record of a past encounter."""
+    date: str
+    home_score: int
+    away_score: int
+    winner: str | None
+
+
 class MatchContext(BaseModel):
     """External physical factors influencing the match."""
     match_id: str
@@ -304,3 +312,4 @@ class MatchContext(BaseModel):
     weather_impact: str | None
     referee_style: str
     fatigue_warning: str | None
+    team_h2h_history: list[HistoricalMatch] = []

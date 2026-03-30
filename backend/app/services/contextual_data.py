@@ -37,6 +37,21 @@ def get_match_context(match_id: str, home_team: str, away_team: str) -> MatchCon
     elif fatigue_chance < 0.2:
         fatigue_warning = f"{away_team} played 48h ago (Rest Disadvantage)"
 
+    # Team History Mock
+    from datetime import datetime, timedelta
+    team_h2h_history = []
+    now = datetime.utcnow()
+    for i in range(3):
+        h_score = random.randint(0, 3)
+        a_score = random.randint(0, 3)
+        winner = home_team if h_score > a_score else (away_team if a_score > h_score else "Draw")
+        team_h2h_history.append({
+            "date": (now - timedelta(days=(i+1)*120)).strftime("%Y-%m-%d"),
+            "home_score": h_score,
+            "away_score": a_score,
+            "winner": winner
+        })
+
     # reset global seed just in case
     random.seed()
 
@@ -45,5 +60,6 @@ def get_match_context(match_id: str, home_team: str, away_team: str) -> MatchCon
         weather=weather,
         weather_impact=weather_impact,
         referee_style=referee_style,
-        fatigue_warning=fatigue_warning
+        fatigue_warning=fatigue_warning,
+        team_h2h_history=team_h2h_history
     )
