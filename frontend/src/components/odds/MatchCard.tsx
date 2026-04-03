@@ -23,24 +23,30 @@ export default function MatchCard({ match }: MatchCardProps) {
   const { toggleSelection, isSelected } = useBetSlipStore();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [propStats, setPropStats] = useState<any>(null);
+  const [matchContext, setMatchContext] = useState<any>(null);
   const [loadingProp, setLoadingProp] = useState(false);
 
   // Fetch mock stats when opened
   useEffect(() => {
-    if (isDrawerOpen && !propStats && !loadingProp) {
+    if (isDrawerOpen && (!propStats || !matchContext) && !loadingProp) {
         setLoadingProp(true);
-        // Map to mock python fastAPI hitting loop
         const pName = encodeURIComponent(match.home_team + " Striker");
         const opp = encodeURIComponent(match.away_team);
-        fetch(`http://127.0.0.1:8000/api/player/${pName}/props?line=1.5&opponent=${opp}`)
-          .then((r) => r.json())
-          .then((data) => {
-             setPropStats(data);
-             setLoadingProp(false);
-          })
-          .catch(() => setLoadingProp(false));
+        const mid = match.match_id;
+
+        // Fetch Both: Player Props & Match Context
+        Promise.all([
+          fetch(`http://127.0.0.1:8000/api/player/${pName}/props?line=1.5&opponent=${opp}`).then(r => r.json()),
+          fetch(`http://127.0.0.1:8000/api/matches/${mid}/context?home_team=${match.home_team}&away_team=${match.away_team}`).then(r => r.json())
+        ])
+        .then(([propData, contextData]) => {
+          setPropStats(propData);
+          setMatchContext(contextData);
+          setLoadingProp(false);
+        })
+        .catch(() => setLoadingProp(false));
     }
-  }, [isDrawerOpen, propStats, loadingProp, match.home_team, match.away_team]);
+  }, [isDrawerOpen, propStats, matchContext, loadingProp, match.home_team, match.away_team, match.match_id]);
 
   // Extract h2h odds — group by outcome_name, pick best price per outcome
   const h2hOdds = match.odds.filter((o) => o.market === "h2h");
@@ -96,7 +102,8 @@ export default function MatchCard({ match }: MatchCardProps) {
       {/* Engine 3.2 Tactical Context Badges */}
       <div className="flex flex-wrap gap-1.5 mb-3 relative z-10">
         {(() => {
-          // Deterministically map context off the match_id
+          // Use fetched matchContext if available, otherwise fall back to deterministic mock
+          // (Since both use the same seed logic in this demo, they will match)
           const seed = match.match_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
           
           const weathers = [
@@ -109,25 +116,35 @@ export default function MatchCard({ match }: MatchCardProps) {
             { id: 1, text: "Strict Ref (5.2 YC/G)", icon: "🟨", cls: "bg-yellow-500/10 text-yellow-500 border border-yellow-500/30 font-bold" }
           ];
           
-          const w = weathers[seed % 3];
-          const r = refs[seed % 2];
-          const isFatigued = (seed % 10) > 7;
+          // Data source: API context or deterministic fallback
+          const weatherText = matchContext?.weather || weathers[seed % 3].text;
+          const weatherImpact = matchContext?.weather_impact;
+          const displayWeather = weatherImpact ? `${weatherText} (${weatherImpact})` : weatherText;
+          const weatherIcon = weathers.find(w => weatherText.includes(w.text))?.icon || "☀️";
+          const weatherCls = weathers.find(w => weatherText.includes(w.text))?.cls || weathers[0].cls;
+
+          const refText = matchContext?.referee_style || refs[seed % 2].text;
+          const refIcon = refText.includes("Strict") ? "🟨" : "⚖️";
+          const refCls = refText.includes("Strict") ? refs[1].cls : refs[0].cls;
+
+          const isFatigued = matchContext ? !!matchContext.fatigue_warning : (seed % 10) > 7;
+          const fatigueText = matchContext?.fatigue_warning || `${match.away_team} Rest Disadvantage`;
 
           return (
             <>
-              {w.id !== 0 && (
-                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${w.cls}`}>
-                  <span>{w.icon}</span> {w.text}
+              {(weatherText !== "Clear" || weatherImpact) && (
+                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${weatherCls}`}>
+                  <span>{weatherIcon}</span> {displayWeather}
                 </div>
               )}
-              {r.id !== 0 && (
-                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${r.cls}`}>
-                  <span>{r.icon}</span> {r.text}
+              {refText.includes("Strict") && (
+                <div className={`px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide ${refCls}`}>
+                  <span>{refIcon}</span> {refText}
                 </div>
               )}
               {isFatigued && (
                 <div className="px-2 py-0.5 rounded flex items-center gap-1 text-[10px] tracking-wide bg-destructive/10 text-destructive border border-destructive/30 font-bold">
-                  <span>⚠️</span> {match.away_team} Rest Disadvantage
+                  <span>⚠️</span> {fatigueText}
                 </div>
               )}
             </>
@@ -307,25 +324,15 @@ export default function MatchCard({ match }: MatchCardProps) {
 
                     <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1.5 mt-4">Team H2H History</div>
                     <div className="space-y-1">
-                      {(() => {
-                        const seed = match.match_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
-                        const results = [];
-                        for (let i = 1; i <= 3; i++) {
-                          const h = (seed + i) % 4;
-                          const a = (seed * i) % 3;
-                          const winner = h > a ? match.home_team : (a > h ? match.away_team : "Draw");
-                          results.push({ date: `2024-0${i}-15`, h, a, winner });
-                        }
-                        return results.map((res, i) => (
-                          <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-border/30 last:border-0">
-                            <span className="text-muted-foreground/60 font-mono">{res.date}</span>
-                            <span className="font-bold text-foreground">{res.h} - {res.a}</span>
-                            <span className={`font-bold ${res.winner === "Draw" ? "text-muted-foreground" : res.winner === match.home_team ? "text-chart-2" : "text-destructive"}`}>
-                              {res.winner === "Draw" ? "Draw" : res.winner === match.home_team ? "Home Win" : "Away Win"}
-                            </span>
-                          </div>
-                        ));
-                      })()}
+                      {(matchContext?.team_h2h_history || []).map((res: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-border/30 last:border-0">
+                          <span className="text-muted-foreground/60 font-mono">{res.date}</span>
+                          <span className="font-bold text-foreground">{res.home_score} - {res.away_score}</span>
+                          <span className={`font-bold ${res.winner === "Draw" ? "text-muted-foreground" : res.winner === match.home_team ? "text-chart-2" : "text-destructive"}`}>
+                            {res.winner === "Draw" ? "Draw" : res.winner === match.home_team ? "Home Win" : "Away Win"}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}

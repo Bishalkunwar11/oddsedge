@@ -10,9 +10,10 @@ from app.cache import build_cache_key, cache_get, cache_set
 from app.config import DEFAULT_EDGE_THRESHOLD
 from app.database import get_db
 from app.redis import get_redis
-from app.schemas import ArbitrageResponse, ValueBetResponse, PlayerPropStats
+from app.schemas import ArbitrageResponse, ValueBetResponse, PlayerPropStats, MatchContext
 from app.services.matches import get_latest_odds
 from app.services.odds_analysis import find_arbitrage, find_value_bets
+from app.services.contextual_data import get_match_context
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
@@ -130,3 +131,14 @@ async def get_player_prop_stats(
         "hit_rate_l5": (hits / 5) * 100.0,
         "hit_rate_szn": random.choice([45.5, 52.0, 68.3, 75.0, 81.2])  # Realistic variance
     }
+
+
+@router.get("/matches/{match_id}/context", response_model=MatchContext)
+async def get_match_context_api(
+    match_id: str,
+    home_team: str = Query(...),
+    away_team: str = Query(...),
+) -> dict:
+    """Fetch tactical context (weather, ref, fatigue, team H2H) for a match."""
+    return get_match_context(match_id, home_team, away_team)
+
