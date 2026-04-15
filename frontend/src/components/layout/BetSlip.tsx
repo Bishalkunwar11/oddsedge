@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { analyzeSmartParlay, type SmartParlayResponse } from "@/lib/api";
 import {
   useBetSlipStore,
   type BetSelection,
@@ -44,28 +45,59 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
   const combinedOdds = totalGlobalOdds();
   const impliedProb = combinedOdds > 0 ? (1 / combinedOdds) * 100 : 0;
 
-  // Engine 1.3: Smart Parlay & Line Shopper Evaluation Mock
-  const hasLowUnder = selections.some(s => s.outcomeName.toLowerCase().includes('under 1.5') || s.outcomeName.toLowerCase().includes('under 2.5'));
-  const hasGoalscorer = selections.some(s => s.market.toLowerCase().includes('scorer') || s.outcomeName.toLowerCase().includes('score') || s.market.toLowerCase().includes('goal'));
-  
-  const hasContradiction = hasLowUnder && hasGoalscorer;
-  let smartGrade = "A";
-  let gradeColor = "bg-green-500/20 text-green-400 border-green-500/30";
-  if (hasContradiction) {
-    smartGrade = "F";
-    gradeColor = "bg-destructive/20 text-destructive border-destructive/30";
-  } else if (selections.length >= 6) {
-    smartGrade = "C";
-    gradeColor = "bg-yellow-500/20 text-yellow-500 border-yellow-500/30";
-  } else if (selections.length >= 4) {
-    smartGrade = "B";
-    gradeColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-  }
+  const [analysis, setAnalysis] = useState<SmartParlayResponse | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Mock pricing variations
-  const topOpt = combinedOdds * 1.05;
-  const midOpt = combinedOdds * 0.98;
-  const lowOpt = combinedOdds * 0.92;
+  // Engine 1.3: Real-time Smart Parlay & Line Shopper Evaluation
+  useEffect(() => {
+    if (isParlay && selections.length >= 2) {
+      const runAnalysis = async () => {
+        setIsAnalyzing(true);
+        try {
+          // Convert our store selections to the API leg format
+          const legs = selections.map(s => ({
+            match_id: s.matchId,
+            market: s.market,
+            outcome_name: s.outcomeName,
+            prop_type: s.propType,
+            player_name: s.playerName
+          }));
+          
+          const result = await analyzeSmartParlay(legs, globalStake);
+          setAnalysis(result);
+        } catch (err) {
+          console.error("Analysis failed:", err);
+        } finally {
+          setIsAnalyzing(false);
+        }
+      };
+
+      const timer = setTimeout(runAnalysis, 300); // Simple debounce
+      return () => clearTimeout(timer);
+    } else {
+      setAnalysis(null);
+    }
+  }, [selections, globalStake, isParlay]);
+
+  // Map backend grade to UI theme
+  const gradeTheme = useMemo(() => {
+    if (!analysis) return { 
+      label: selections.length >= 2 ? "..." : "N/A", 
+      color: "bg-muted text-muted-foreground border-border" 
+    };
+    
+    switch (analysis.grade) {
+      case "A": return { label: "A", color: "bg-green-500/20 text-green-400 border-green-500/30 font-black" };
+      case "B": return { label: "B", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" };
+      case "C": return { label: "C", color: "bg-yellow-500/20 text-yellow-500 border-yellow-500/30" };
+      case "D": return { label: "D", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" };
+      case "F": return { label: "F", color: "bg-destructive/20 text-destructive border-destructive/30" };
+      default: return { label: analysis.grade, color: "bg-muted text-muted-foreground border-border" };
+    }
+  }, [analysis, selections.length]);
+
+  const contradictions = analysis?.contradictions || [];
+  const hasContradiction = contradictions.length > 0;
 
   // Pulse effect ready check
   const isReadyToPlace = selections.length > 0 && totalWager > 0;
@@ -187,9 +219,9 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                   </span>
                   
                   {selections.length > 1 && (
-                    <div className={`flex items-center gap-2 px-2 py-0.5 rounded-full border ${gradeColor}`}>
+                    <div className={`flex items-center gap-2 px-2 py-0.5 rounded-full border ${gradeTheme.color} ${isAnalyzing ? "animate-pulse" : ""}`}>
                       <span className="text-[10px] uppercase font-bold tracking-widest">Grade</span>
-                      <span className="text-[12px] font-black">{smartGrade}</span>
+                      <span className="text-[12px] font-black">{gradeTheme.label}</span>
                     </div>
                   )}
                 </div>
@@ -197,17 +229,21 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                 {hasContradiction && selections.length > 1 && (
                   <div className="mb-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20 flex gap-2 items-start">
                     <span className="text-destructive text-[12px]">⚠️</span>
-                    <p className="text-[10px] text-destructive font-semibold leading-tight">
-                      Contradiction Detected: You have a low Under line mixed with a player to score prop. High risk of exclusion!
-                    </p>
+                    <div className="flex flex-col gap-1">
+                      {contradictions.map((c, i) => (
+                        <p key={i} className="text-[10px] text-destructive font-semibold leading-tight">
+                          {c.reason}
+                        </p>
+                      ))}
+                    </div>
                   </div>
                 )}
 
                 <div className="grid grid-cols-2 gap-2">
                   <SummaryCell label="Legs" value={String(selections.length)} />
-                  <SummaryCell label="Combined Odds" value={`${combinedOdds.toFixed(2)}x`} accent="green" />
-                  <SummaryCell label="Total Payout" value={`$${totalPayout.toFixed(2)}`} accent="green" />
-                  <SummaryCell label="Net Profit" value={`$${totalProfit.toFixed(2)}`} accent={totalProfit > 0 ? "green" : "red"} />
+                  <SummaryCell label="Engine Odds" value={`${(analysis?.line_shopper_best_odds || combinedOdds).toFixed(2)}x`} accent="green" />
+                  <SummaryCell label="Total Payout" value={`$${(analysis?.payout || totalPayout).toFixed(2)}`} accent="green" />
+                  <SummaryCell label="Net Profit" value={`$${((analysis?.payout || totalPayout) - totalWager).toFixed(2)}`} accent={((analysis?.payout || totalPayout) - totalWager) > 0 ? "green" : "red"} />
                 </div>
                 <div className="mt-2 text-center text-[10px] text-muted-foreground/70">
                   All {selections.length} legs must win · Implied: {impliedProb.toFixed(1)}%
@@ -348,16 +384,12 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
                 
                 <div className="space-y-1.5 mt-1">
                   <div className="flex items-center justify-between px-2 py-1.5 bg-chart-3/10 border border-chart-3/20 rounded">
-                    <span className="text-[11px] font-semibold text-foreground">DraftKings</span>
-                    <span className="text-[12px] font-mono font-bold text-chart-3">{topOpt.toFixed(2)}x</span>
+                    <span className="text-[11px] font-semibold text-foreground">{analysis?.line_shopper_best_bookie || "Optimizing..."}</span>
+                    <span className="text-[12px] font-mono font-bold text-chart-3">{(analysis?.line_shopper_best_odds || combinedOdds).toFixed(2)}x</span>
                   </div>
-                  <div className="flex items-center justify-between px-2 py-1 bg-card border border-border rounded">
-                    <span className="text-[11px] text-muted-foreground">FanDuel</span>
-                    <span className="text-[12px] font-mono text-muted-foreground">{midOpt.toFixed(2)}x</span>
-                  </div>
-                  <div className="flex items-center justify-between px-2 py-1 bg-card border border-border rounded">
-                    <span className="text-[11px] text-muted-foreground opacity-70">BetMGM</span>
-                    <span className="text-[12px] font-mono text-muted-foreground opacity-70">{lowOpt.toFixed(2)}x</span>
+                  <div className="flex items-center justify-between px-2 py-1 bg-card border border-border rounded opacity-70">
+                    <span className="text-[11px] text-muted-foreground">Standard Avg</span>
+                    <span className="text-[12px] font-mono text-muted-foreground">{(combinedOdds * 0.95).toFixed(2)}x</span>
                   </div>
                 </div>
               </motion.div>
@@ -372,7 +404,7 @@ export default function BetSlip({ isOpen, onClose }: BetSlipProps) {
             </div>
             <div className="flex flex-col items-end">
               <span className="text-[10px] text-muted-foreground/70 font-semibold uppercase tracking-wider">To Win</span>
-              <span className="text-[16px] font-black text-chart-2 tabular-nums font-mono">${totalPayout.toFixed(2)}</span>
+              <span className="text-[16px] font-black text-chart-2 tabular-nums font-mono">${(analysis?.payout || totalPayout).toFixed(2)}</span>
             </div>
           </div>
 

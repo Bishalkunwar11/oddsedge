@@ -13,7 +13,6 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
-    Text,
     Boolean,
     func,
 )
@@ -115,26 +114,26 @@ class Odds(Base):
         )
 
 
-class Feedback(Base):
-    """User feedback entry with a category and star rating.
-
-    Corresponds to the ``feedback`` table.
+class PlayerGameLog(Base):
+    """Historical performance data for a single player in a single match.
+    
+    Used by Engine 2 (Player Prop Intelligence) to calculate hit rates.
     """
+    __tablename__ = "player_game_logs"
 
-    __tablename__ = "feedback"
-
-    id: Mapped[int] = mapped_column(
-        Integer, primary_key=True, autoincrement=True
-    )
-    category: Mapped[str] = mapped_column(String(100), nullable=False)
-    rating: Mapped[int] = mapped_column(Integer, nullable=False)
-    message: Mapped[str] = mapped_column(Text, nullable=False)
-    submitted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
-        index=True,
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    player_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    match_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    opponent: Mapped[str] = mapped_column(String(255), nullable=False)
+    date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    
+    # Standard stats
+    goals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    shots: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    shots_on_target: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    assists: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    saves: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    minutes_played: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
     def __repr__(self) -> str:
-        return f"<Feedback id={self.id} category={self.category!r} rating={self.rating}>"
+        return f"<PlayerGameLog {self.player_name} vs {self.opponent} on {self.date.date()}>"

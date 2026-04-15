@@ -1,0 +1,21 @@
+# Environment / secrets — never commit real keys
+.env
+api.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+venv/
+.venv/
+
+# Test & coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build / distribution
+dist/
+*.egg-info/

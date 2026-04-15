@@ -13,6 +13,8 @@ export interface BetSelection {
   outcomeName: string;
   outcomePrice: number;
   bookmaker: string;
+  propType?: string;
+  playerName?: string;
 }
 
 export type TabType = "Singles" | "Parlays" | "Round Robins";
