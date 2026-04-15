@@ -7,13 +7,13 @@ PostgreSQL-compatible models with proper types, indexes, and relationships.
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Float,
     ForeignKey,
     Index,
     Integer,
     String,
-    Boolean,
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -126,7 +126,7 @@ class PlayerGameLog(Base):
     match_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     opponent: Mapped[str] = mapped_column(String(255), nullable=False)
     date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
-    
+
     # Standard stats
     goals: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     shots: Mapped[int] = mapped_column(Integer, default=0, nullable=False)

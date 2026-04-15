@@ -1,6 +1,7 @@
 """Service for generating contextual and tactical match data (Weather, Form, Referees, Fatigue)."""
 
 import random
+
 from app.schemas import MatchContext
 
 _WEATHERS = [
@@ -25,10 +26,10 @@ def get_match_context(match_id: str, home_team: str, away_team: str) -> MatchCon
     # Deterministic randomness based on match_id
     seed_hash = sum(ord(c) for c in match_id)
     random.seed(seed_hash)
-    
+
     weather, weather_impact = random.choice(_WEATHERS)
     referee_style = random.choice(_REFEREES)
-    
+
     # Randomly assign fatigue
     fatigue_warning = None
     fatigue_chance = random.random()
