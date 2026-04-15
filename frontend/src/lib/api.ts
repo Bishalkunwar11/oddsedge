@@ -40,6 +40,8 @@ export interface ValueBet {
   bookmaker_prob: number;
   consensus_prob: number;
   edge: number;
+  contextual_adjustment?: number;
+  contextual_reason?: string;
 }
 
 export interface ArbitrageOpp {
@@ -52,82 +54,89 @@ export interface ArbitrageOpp {
   best_odds: Record<string, number>;
 }
 
-export interface ParlayResult {
+
+export interface SmartParlayLeg {
+  match_id: string;
+  market: string;
+  outcome_name: string;
+  prop_type?: string;
+  player_name?: string;
+}
+
+export interface SmartParlayRequest {
+  legs: SmartParlayLeg[];
   stake: number;
-  num_legs: number;
-  combined_odds: number;
+}
+
+export interface ParlayContradiction {
+  leg_a_outcome: string;
+  leg_b_outcome: string;
+  reason: string;
+  severity: "high" | "medium" | "low";
+}
+
+export interface SmartParlayResponse {
+  grade: string;
+  score: number;
+  contradictions: ParlayContradiction[];
+  line_shopper_best_bookie: string;
+  line_shopper_best_odds: number;
   payout: number;
-  profit: number;
-  implied_probability: number;
+}
+
+export interface LastGameLog {
+  opponent: string;
+  date: string;
+  value: number;
+  hit: boolean;
+}
+
+export interface H2HStats {
+  opponent: string;
+  games_played: number;
+  avg_value: number;
+}
+
+export interface PlayerPropStats {
+  player_name: string;
+  prop_type: string;
+  line: number;
+  last_5_games: LastGameLog[];
+  h2h_vs_opponent: H2HStats | null;
+  hit_rate_l5: number;
+  hit_rate_szn: number;
+}
+
+export interface HistoricalMatch {
+  date: string;
+  home_score: number;
+  away_score: number;
+  winner: string | null;
+}
+
+export interface MatchContext {
+  match_id: string;
+  weather: string;
+  weather_impact: string | null;
+  referee_style: string;
+  fatigue_warning: string | null;
+  team_h2h_history: HistoricalMatch[];
 }
 
 // ─── Fetch helpers ───────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  try {
-    const res = await fetch(`${API_BASE}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
-    });
-    if (!res.ok) {
-      throw new Error(`API error ${res.status}: ${res.statusText}`);
-    }
-    return (await res.json()) as Promise<T>;
-  } catch (err) {
-    console.warn("Backend fetch failed, using fallback mock data for visually testing the UI:", err);
-    
-    // Inject mock data for /api/matches to demonstrate the grids
-    if (path.includes("/api/matches")) {
-      const mockMatches: Match[] = [
-        {
-          match_id: "mock_1",
-          sport_key: "soccer_epl",
-          league: "English Premier League",
-          home_team: "Arsenal",
-          away_team: "Chelsea",
-          commence_time: new Date(Date.now() + 3600000).toISOString(),
-          odds: [
-            { bookmaker: "DraftKings", market: "h2h", outcome_name: "Arsenal", outcome_price: 1.85, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "DraftKings", market: "h2h", outcome_name: "Draw", outcome_price: 3.50, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "DraftKings", market: "h2h", outcome_name: "Chelsea", outcome_price: 4.20, point: null, timestamp: new Date().toISOString() },
-          ],
-        },
-        {
-          match_id: "mock_2",
-          sport_key: "soccer_spain_la_liga",
-          league: "Spanish La Liga",
-          home_team: "Real Madrid",
-          away_team: "Barcelona",
-          commence_time: new Date(Date.now() + 86400000).toISOString(),
-          odds: [
-            { bookmaker: "FanDuel", market: "h2h", outcome_name: "Real Madrid", outcome_price: 2.10, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "FanDuel", market: "h2h", outcome_name: "Draw", outcome_price: 3.20, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "FanDuel", market: "h2h", outcome_name: "Barcelona", outcome_price: 3.10, point: null, timestamp: new Date().toISOString() },
-          ],
-        },
-        {
-          match_id: "mock_3",
-          sport_key: "soccer_italy_serie_a",
-          league: "Italian Serie A",
-          home_team: "Juventus",
-          away_team: "AC Milan",
-          commence_time: new Date(Date.now() + 172800000).toISOString(),
-          odds: [
-            { bookmaker: "BetMGM", market: "h2h", outcome_name: "Juventus", outcome_price: 2.50, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "BetMGM", market: "h2h", outcome_name: "Draw", outcome_price: 3.10, point: null, timestamp: new Date().toISOString() },
-            { bookmaker: "BetMGM", market: "h2h", outcome_name: "AC Milan", outcome_price: 2.80, point: null, timestamp: new Date().toISOString() },
-          ],
-        }
-      ];
-      return mockMatches as unknown as T;
-    }
-    
-    // Fallback for value-bets or arbitrage
-    return [] as unknown as T;
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`API error ${res.status}: ${res.statusText}`);
   }
+  return (await res.json()) as Promise<T>;
 }
 
 // ─── Endpoints ───────────────────────────────────────────────────────
@@ -157,12 +166,34 @@ export function fetchArbitrage(sportKeys?: string[]): Promise<ArbitrageOpp[]> {
   return apiFetch<ArbitrageOpp[]>(`/api/arbitrage${qs ? `?${qs}` : ""}`);
 }
 
-export function calculateParlay(
-  stake: number,
-  odds: number[]
-): Promise<ParlayResult> {
-  return apiFetch<ParlayResult>("/api/calculate-parlay", {
+
+
+export function analyzeSmartParlay(
+  legs: SmartParlayLeg[],
+  stake: number
+): Promise<SmartParlayResponse> {
+  return apiFetch<SmartParlayResponse>("/api/smart-parlay/analyze", {
     method: "POST",
-    body: JSON.stringify({ stake, odds }),
+    body: JSON.stringify({ legs, stake }),
   });
+}
+
+export function fetchPlayerProps(
+  playerName: string,
+  propType: string = "shots_on_target",
+  line: number = 1.5,
+  opponent?: string
+): Promise<PlayerPropStats> {
+  const qs = new URLSearchParams({ prop_type: propType, line: line.toString() });
+  if (opponent) qs.append("opponent", opponent);
+  return apiFetch<PlayerPropStats>(`/api/player/${encodeURIComponent(playerName)}/props?${qs.toString()}`);
+}
+
+export function fetchMatchContext(
+  matchId: string,
+  homeTeam: string,
+  awayTeam: string
+): Promise<MatchContext> {
+  const qs = new URLSearchParams({ home_team: homeTeam, away_team: awayTeam });
+  return apiFetch<MatchContext>(`/api/matches/${matchId}/context?${qs.toString()}`);
 }

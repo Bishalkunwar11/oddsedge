@@ -1,5 +1,6 @@
 """Async database engine, session factory, and dependency for FastAPI."""
 
+import logging
 from collections.abc import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import (
@@ -10,6 +11,8 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Engine & session factory
@@ -42,17 +45,35 @@ class Base(DeclarativeBase):
 # FastAPI dependency
 # ---------------------------------------------------------------------------
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Yield an async session and ensure it is closed after use.
+async def get_db() -> AsyncGenerator[AsyncSession | None, None]:
+    """Yield an async session, or ``None`` if the database is unreachable.
 
-    Usage in FastAPI routes::
-
-        @router.get("/items")
-        async def list_items(db: AsyncSession = Depends(get_db)):
-            ...
+    When PostgreSQL is offline the routers can fall through to the
+    live-API data path instead of crashing with a 500.
     """
-    async with async_session_factory() as session:
-        try:
-            yield session
-        finally:
-            await session.close()
+    session: AsyncSession | None = None
+    try:
+        session = async_session_factory()
+        # Eagerly test the connection so we know *now* whether the DB is alive.
+        # execute a lightweight "SELECT 1" — if this fails, we catch it and
+        # yield None so the router uses the live-API fallback.
+        from sqlalchemy import text
+        await session.execute(text("SELECT 1"))
+    except Exception as exc:
+        logger.warning("Database unavailable — yielding None: %s", exc)
+        if session is not None:
+            try:
+                await session.close()
+            except Exception:
+                pass
+        session = None
+
+    # Yield exactly once — either a working session or None.
+    try:
+        yield session
+    finally:
+        if session is not None:
+            try:
+                await session.close()
+            except Exception:
+                pass

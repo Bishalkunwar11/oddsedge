@@ -1,4 +1,4 @@
-"""Analysis router — GET /api/value-bets, GET /api/arbitrage (with Redis caching)."""
+"""Analysis router — GET /api/value-bets, GET /api/arbitrage (with Redis caching + live API fallback)."""
 
 from __future__ import annotations
 
@@ -12,8 +12,10 @@ from app.database import get_db
 from app.redis import get_redis
 from app.schemas import ArbitrageResponse, ValueBetResponse, PlayerPropStats, MatchContext
 from app.services.matches import get_latest_odds
+from app.services.live_data import get_live_odds_rows
 from app.services.odds_analysis import find_arbitrage, find_value_bets
 from app.services.contextual_data import get_match_context
+from app.services.player_stats import get_player_analytics
 
 router = APIRouter(prefix="/api", tags=["analysis"])
 
@@ -33,7 +35,10 @@ async def list_value_bets(
     """Identify value bets by comparing each bookmaker's price to the
     consensus (sharp-bookmaker) implied probability.
 
-    Results are cached in Redis for 5 minutes.
+    Data source priority:
+      1. Redis cache (5 min TTL)
+      2. PostgreSQL database
+      3. Live fetch from The Odds API (fallback when DB is empty)
     """
     # --- Cache check ---
     cache_key = build_cache_key(
@@ -43,9 +48,20 @@ async def list_value_bets(
     if cached is not None:
         return cached
 
-    # --- Compute ---
+    # --- DB query, with live API fallback ---
     odds_rows = await get_latest_odds(db, sport_keys=sport_key)
-    result = find_value_bets(odds_rows, threshold=threshold)
+    if not odds_rows:
+        odds_rows = await get_live_odds_rows(redis_client=redis_client, sport_keys=sport_key)
+
+    # --- Engine 3: Generate Context Map ---
+    match_ids = {r["match_id"] for r in odds_rows}
+    context_map = {}
+    for mid in match_ids:
+        # Pick the first row for this match to get team names
+        sample = next(r for r in odds_rows if r["match_id"] == mid)
+        context_map[mid] = get_match_context(mid, sample["home_team"], sample["away_team"])
+
+    result = find_value_bets(odds_rows, threshold=threshold, context_map=context_map)
 
     # --- Cache store ---
     await cache_set(redis_client, cache_key, result)
@@ -61,7 +77,10 @@ async def list_arbitrage(
 ) -> list[dict]:
     """Find arbitrage opportunities across bookmakers.
 
-    Results are cached in Redis for 5 minutes.
+    Data source priority:
+      1. Redis cache (5 min TTL)
+      2. PostgreSQL database
+      3. Live fetch from The Odds API (fallback when DB is empty)
     """
     # --- Cache check ---
     cache_key = build_cache_key("arbitrage", sport_key=sport_key)
@@ -69,8 +88,11 @@ async def list_arbitrage(
     if cached is not None:
         return cached
 
-    # --- Compute ---
+    # --- DB query, with live API fallback ---
     odds_rows = await get_latest_odds(db, sport_keys=sport_key)
+    if not odds_rows:
+        odds_rows = await get_live_odds_rows(redis_client=redis_client, sport_keys=sport_key)
+
     result = find_arbitrage(odds_rows)
 
     # --- Cache store ---
@@ -85,52 +107,16 @@ async def get_player_prop_stats(
     prop_type: str = Query(default="shots_on_target", description="E.g. shots_on_target, goals, assists"),
     line: float = Query(default=1.5, ge=0.5, description="The betting line to grade against"),
     opponent: str | None = Query(default=None, description="Opponent name for H2H filtering"),
-) -> dict:
-    """Fetch specific H2H player data and historical success rates for props.
-    
-    (Mocked for Engine 2.1 to isolate Frontend UI dashboard development)
-    """
-    import random
-    from datetime import datetime, timedelta
-
-    # Generate 5 mock logs
-    last_5_games = []
-    hits = 0
-    now = datetime.utcnow()
-    
-    opponents = ["Arsenal", "Chelsea", "Man Utd", "Liverpool", "Spurs", "Newcastle"]
-    for i in range(5):
-        # random value clustered around the line
-        val = max(0.0, round(random.gauss(line, int(line * 1.5)), 0))
-        is_hit = val >= line
-        if is_hit:
-            hits += 1
-            
-        last_5_games.append({
-            "opponent": opponents[i % len(opponents)],
-            "date": (now - timedelta(days=(i+1)*7)).strftime("%Y-%m-%d"),
-            "value": val,
-            "hit": is_hit
-        })
-
-    # Prepare H2H dict lazily
-    h2h_vs_opponent = None
-    if opponent:
-        h2h_vs_opponent = {
-            "opponent": opponent,
-            "games_played": 3,
-            "avg_value": round(line * random.uniform(0.8, 1.4), 1)
-        }
-
-    return {
-        "player_name": player_name.replace("+", " ").title(),
-        "prop_type": prop_type,
-        "line": line,
-        "last_5_games": last_5_games,
-        "h2h_vs_opponent": h2h_vs_opponent,
-        "hit_rate_l5": (hits / 5) * 100.0,
-        "hit_rate_szn": random.choice([45.5, 52.0, 68.3, 75.0, 81.2])  # Realistic variance
-    }
+    db: AsyncSession = Depends(get_db),
+) -> PlayerPropStats:
+    """Fetch specific H2H player data and historical success rates for props."""
+    return await get_player_analytics(
+        db=db,
+        player_name=player_name.replace("+", " "),
+        prop_type=prop_type,
+        line=line,
+        opponent=opponent
+    )
 
 
 @router.get("/matches/{match_id}/context", response_model=MatchContext)

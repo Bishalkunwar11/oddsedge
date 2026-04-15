@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import type { Match, MatchOdds } from "@/lib/api";
+import type { Match, MatchOdds, PlayerPropStats, MatchContext } from "@/lib/api";
+import { fetchPlayerProps, fetchMatchContext } from "@/lib/api";
 import {
   useBetSlipStore,
   makeSelectionId,
@@ -22,8 +23,8 @@ interface MatchCardProps {
 export default function MatchCard({ match }: MatchCardProps) {
   const { toggleSelection, isSelected } = useBetSlipStore();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [propStats, setPropStats] = useState<any>(null);
-  const [matchContext, setMatchContext] = useState<any>(null);
+  const [propStats, setPropStats] = useState<PlayerPropStats | null>(null);
+  const [matchContext, setMatchContext] = useState<MatchContext | null>(null);
   const [loadingProp, setLoadingProp] = useState(false);
 
   // Fetch mock stats when opened
@@ -35,9 +36,10 @@ export default function MatchCard({ match }: MatchCardProps) {
         const mid = match.match_id;
 
         // Fetch Both: Player Props & Match Context
+        // Fetch Both: Player Props & Match Context using safe wrappers
         Promise.all([
-          fetch(`http://127.0.0.1:8000/api/player/${pName}/props?line=1.5&opponent=${opp}`).then(r => r.json()),
-          fetch(`http://127.0.0.1:8000/api/matches/${mid}/context?home_team=${match.home_team}&away_team=${match.away_team}`).then(r => r.json())
+          fetchPlayerProps(pName, "shots_on_target", 1.5, opp),
+          fetchMatchContext(mid, match.home_team, match.away_team)
         ])
         .then(([propData, contextData]) => {
           setPropStats(propData);
@@ -305,31 +307,130 @@ export default function MatchCard({ match }: MatchCardProps) {
             >
               <div className="pt-4 pb-1">
                 {loadingProp || !propStats ? (
-                  <div className="animate-pulse space-y-2">
-                    <div className="h-6 bg-input rounded w-full"></div>
-                    <div className="h-10 bg-input rounded w-full mt-2"></div>
+                  <div className="animate-pulse space-y-3">
+                    <div className="h-6 bg-input rounded w-3/4"></div>
+                    <div className="h-24 bg-input rounded-xl w-full"></div>
+                    <div className="h-20 bg-input rounded-xl w-full"></div>
                   </div>
                 ) : (
-                  <div className="bg-input/30 rounded-lg p-3 border border-border">
-                    <div className="flex justify-between items-center mb-3">
-                      <div>
-                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">Hit Rate (SZN)</div>
-                        <div className="text-[14px] font-black text-chart-2 tabular-nums">{propStats.hit_rate_szn}%</div>
+                  <div className="space-y-4">
+                    {/* Header: Pulse of the Prop */}
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[12px] font-black text-foreground uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-chart-2 animate-ping" />
+                        Pulse of the Prop
+                      </h4>
+                      <span className="text-[10px] font-bold text-muted-foreground/50 uppercase">{propStats.prop_type.replace(/_/g, " ")} | Line {propStats.line}</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                       {/* Season Strike Rate Indicator */}
+                       <div className="bg-card/50 border border-border rounded-xl p-3 flex flex-col items-center justify-center text-center">
+                          <div className="relative w-16 h-16 mb-2">
+                             <svg className="w-full h-full transform -rotate-90">
+                               <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="4" className="text-border" />
+                               <motion.circle 
+                                 cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="4" 
+                                 strokeDasharray={176}
+                                 initial={{ strokeDashoffset: 176 }}
+                                 animate={{ strokeDashoffset: 176 - (176 * propStats.hit_rate_szn) / 100 }}
+                                 transition={{ duration: 1, ease: "easeOut" }}
+                                 className="text-chart-2" 
+                               />
+                             </svg>
+                             <div className="absolute inset-0 flex items-center justify-center">
+                               <span className="text-[13px] font-black">{Math.round(propStats.hit_rate_szn)}%</span>
+                             </div>
+                          </div>
+                          <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-tighter">Season Strike Rate</span>
+                       </div>
+
+                       {/* H2H context */}
+                       <div className="bg-card/50 border border-border rounded-xl p-3 flex flex-col justify-center gap-1">
+                          <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">vs {propStats.h2h_vs_opponent?.opponent || "Opponent"}</span>
+                          <div className="text-[18px] font-black text-chart-2 tabular-nums">
+                            {propStats.h2h_vs_opponent?.avg_value || "-"}
+                            <span className="text-[10px] text-muted-foreground ml-1 font-normal">avg</span>
+                          </div>
+                          <p className="text-[9px] text-muted-foreground leading-tight">Based on last {propStats.h2h_vs_opponent?.games_played || 0} meetings</p>
+                       </div>
+                    </div>
+
+                    {/* Performance Histogram (Last 5) */}
+                    <div className="bg-input/20 rounded-xl p-3 border border-border">
+                       <div className="flex items-center justify-between mb-3 px-1">
+                          <span className="text-[10px] font-bold uppercase text-muted-foreground">Performance (Last 5)</span>
+                          <div className="flex gap-2">
+                             <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-chart-2" /><span className="text-[8px] uppercase font-bold text-muted-foreground">HIT</span></div>
+                             <div className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-destructive" /><span className="text-[8px] uppercase font-bold text-muted-foreground">MISS</span></div>
+                          </div>
+                       </div>
+                       <div className="flex items-end justify-between gap-1 h-16 mb-2">
+                          {propStats.last_5_games.map((log, i) => {
+                             const maxVal = Math.max(...propStats.last_5_games.map(l => l.value), propStats.line + 1);
+                             const barHeight = (log.value / maxVal) * 100;
+                             const linePos = (propStats.line / maxVal) * 100;
+                             
+                             return (
+                               <div key={i} className="flex-1 flex flex-col items-center gap-1 group/bar">
+                                  <div className="relative w-full h-12 bg-border/20 rounded-sm overflow-hidden flex items-end">
+                                     {/* Target Line marker */}
+                                     {/* <div className="absolute left-0 right-0 border-t border-dashed border-white/20 z-10" style={{ bottom: `${linePos}%` }} /> */}
+                                     <motion.div 
+                                       initial={{ height: 0 }}
+                                       animate={{ height: `${barHeight}%` }}
+                                       className={`w-full ${log.hit ? 'bg-chart-2/40 group-hover/bar:bg-chart-2/60' : 'bg-destructive/40 group-hover/bar:bg-destructive/60'} transition-colors`}
+                                     />
+                                  </div>
+                                  <span className="text-[10px] font-black tabular-nums">{log.value}</span>
+                                  <span className="text-[7px] font-bold text-muted-foreground/60 uppercase group-hover/bar:text-foreground">{log.opponent.substring(0,3)}</span>
+                               </div>
+                             );
+                          })}
+                       </div>
+                    </div>
+
+                    {/* Add to slip action */}
+                    <div className="flex items-center justify-between gap-4 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-bold text-foreground">{match.home_team} Prop</span>
+                        <span className="text-[10px] text-muted-foreground">O {propStats.line} {propStats.prop_type.replace(/_/g, " ")}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">H2H vs {match.away_team}</div>
-                        <div className="text-[12px] font-semibold text-foreground">{propStats.h2h_vs_opponent?.avg_value || "-"} avg / gm</div>
+                      <div className="w-24">
+                        <OddsButton 
+                          price={2.40} 
+                          isSelected={isSelected(makeSelectionId(match.match_id, "player_props", `${match.home_team} Striker O ${propStats.line} ${propStats.prop_type}`))}
+                          onClick={() => {
+                            toggleSelection({
+                              id: makeSelectionId(match.match_id, "player_props", `${match.home_team} Striker O ${propStats.line} ${propStats.prop_type}`),
+                              matchId: match.match_id,
+                              homeTeam: match.home_team,
+                              awayTeam: match.away_team,
+                              league: match.league,
+                              market: "Player Props",
+                              outcomeName: `${match.home_team} Striker O ${propStats.line} ${propStats.prop_type}`,
+                              outcomePrice: 2.40,
+                              bookmaker: "DraftKings",
+                              propType: propStats.prop_type,
+                              playerName: `${match.home_team} Striker`
+                            });
+                          }}
+                        />
                       </div>
                     </div>
 
-                    <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1.5 mt-4">Team H2H History</div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1.5 mt-4">Match Tactical Context</div>
                     <div className="space-y-1">
                       {(matchContext?.team_h2h_history || []).map((res: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between text-[11px] py-1 border-b border-border/30 last:border-0">
-                          <span className="text-muted-foreground/60 font-mono">{res.date}</span>
-                          <span className="font-bold text-foreground">{res.home_score} - {res.away_score}</span>
-                          <span className={`font-bold ${res.winner === "Draw" ? "text-muted-foreground" : res.winner === match.home_team ? "text-chart-2" : "text-destructive"}`}>
-                            {res.winner === "Draw" ? "Draw" : res.winner === match.home_team ? "Home Win" : "Away Win"}
+                        <div key={i} className="flex items-center justify-between text-[11px] py-1.5 border-b border-border/30 last:border-0 hover:bg-white/5 transition-colors px-1 rounded-sm">
+                          <span className="text-muted-foreground/60 font-mono text-[9px]">{res.date}</span>
+                          <span className="font-bold text-foreground flex items-center gap-1">
+                             <span className="text-[10px] opacity-70">{match.home_team.substring(0,3)}</span>
+                             {res.home_score} - {res.away_score}
+                             <span className="text-[10px] opacity-70">{match.away_team.substring(0,3)}</span>
+                          </span>
+                          <span className={`text-[9px] font-bold uppercase tracking-tighter ${res.winner === "Draw" ? "text-muted-foreground" : res.winner === "Home" ? "text-chart-2" : "text-destructive"}`}>
+                            {res.winner === "Draw" ? "Draw" : res.winner === "Home" ? "Home Win" : "Away Win"}
                           </span>
                         </div>
                       ))}
