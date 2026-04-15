@@ -116,7 +116,7 @@ class Odds(Base):
 
 class PlayerGameLog(Base):
     """Historical performance data for a single player in a single match.
-    
+
     Used by Engine 2 (Player Prop Intelligence) to calculate hit rates.
     """
     __tablename__ = "player_game_logs"
