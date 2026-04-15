@@ -4,10 +4,15 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Central configuration sourced from env vars / .env file."""
+    """Central configuration sourced from env vars / .env file(s).
+
+    Pydantic reads files left-to-right; later files override earlier ones.
+    - ``.env``   — database / redis / app config (committed as .env.example)
+    - ``api.env`` — third-party API keys (git-ignored, never committed)
+    """
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "api.env"),   # api.env overrides .env for shared keys
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -28,6 +33,22 @@ class Settings(BaseSettings):
     debug: bool = False
     app_title: str = "Football Odds API"
     app_version: str = "0.1.0"
+
+    # ---------------------------------------------------------------------------
+    # Third-Party API Keys (all optional — service degrades gracefully if absent)
+    # ---------------------------------------------------------------------------
+
+    # The Odds API — https://the-odds-api.com
+    # Free tier: 500 requests/month. Injected as ?apiKey= query param.
+    odds_api_key: str | None = None
+
+    # API-Football — https://www.api-football.com (via RapidAPI)
+    # Free tier: 100 requests/day. Injected via x-rapidapi-key header.
+    api_football_key: str | None = None
+
+    # Sportmonks — https://www.sportmonks.com
+    # Free tier: limited fixtures/day. Injected via Authorization header.
+    sportmonks_api_token: str | None = None
 
 
 settings = Settings()

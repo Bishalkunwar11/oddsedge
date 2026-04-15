@@ -8,49 +8,14 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.schemas import MatchContext
 
 from app.config import DEFAULT_EDGE_THRESHOLD, SHARP_BOOKMAKERS
 
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------------------------
-# Core mathematics
-# ---------------------------------------------------------------------------
-
-
-def implied_probability(decimal_odds: float) -> float:
-    """Convert decimal odds to implied probability.
-
-    Raises:
-        ValueError: If *decimal_odds* is not positive.
-    """
-    if decimal_odds <= 0:
-        raise ValueError(f"decimal_odds must be positive, got {decimal_odds}")
-    return 1.0 / decimal_odds
-
-
-def calculate_margin(odds_list: list[float]) -> float:
-    """Calculate bookmaker margin (overround).
-
-    Raises:
-        ValueError: If *odds_list* is empty or contains non-positive values.
-    """
-    if not odds_list:
-        raise ValueError("odds_list must not be empty.")
-    for o in odds_list:
-        if o <= 0:
-            raise ValueError(f"All odds must be positive, got {o}")
-    return sum(1.0 / o for o in odds_list) - 1.0
-
-
-def calculate_fair_odds(odds_list: list[float]) -> list[float]:
-    """Remove the margin from odds to get fair prices."""
-    if not odds_list:
-        raise ValueError("odds_list must not be empty.")
-    total_implied = sum(1.0 / o for o in odds_list)
-    return [o * total_implied for o in odds_list]
 
 
 # ---------------------------------------------------------------------------
@@ -162,6 +127,7 @@ def find_value_bets(
     odds_rows: list[dict[str, Any]],
     sharp_bookmakers: list[str] | None = None,
     threshold: float = DEFAULT_EDGE_THRESHOLD,
+    context_map: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """Identify value bets by comparing bookmaker odds to the sharp line.
 
@@ -172,7 +138,7 @@ def find_value_bets(
         List of value-bet dicts with ``match_id``, ``home_team``,
         ``away_team``, ``commence_time``, ``market``, ``outcome_name``,
         ``bookmaker``, ``outcome_price``, ``bookmaker_prob``,
-        ``consensus_prob``, ``edge``.
+        ``consensus_prob``, ``edge``, ``contextual_adjustment``, ``contextual_reason``.
     """
     if not odds_rows:
         return []
@@ -191,6 +157,16 @@ def find_value_bets(
         if cons_prob is None:
             continue
 
+        # --- Engine 3: Apply Contextual Multipliers ---
+        adjustment = 0.0
+        reason = None
+        
+        # If we have a context_map and this match has context, apply boosts
+        if context_map and row["match_id"] in context_map:
+            ctx = context_map[row["match_id"]]
+            adjustment, reason = _calculate_boost(row, ctx)
+            cons_prob += adjustment
+
         bookie_prob = 1.0 / price
         if bookie_prob < cons_prob - threshold:
             edge = round(cons_prob - bookie_prob, 4)
@@ -207,7 +183,36 @@ def find_value_bets(
                     "bookmaker_prob": round(bookie_prob, 4),
                     "consensus_prob": round(cons_prob, 4),
                     "edge": edge,
+                    "contextual_adjustment": round(adjustment, 4),
+                    "contextual_reason": reason,
                 }
             )
 
     return results
+
+
+def _calculate_boost(row: dict, ctx: Any) -> tuple[float, str | None]:
+    """Helper to determine the probability adjustment based on context."""
+    adj = 0.0
+    reason = None
+
+    market = row["market"].lower()
+    outcome = row["outcome_name"].lower()
+
+    # Weather Factor (Unders)
+    if ctx.weather_impact and "Under" in ctx.weather_impact:
+        if market == "total" and "under" in outcome:
+            adj = 0.025 # 2.5% boost for defensive weather
+            reason = f"Weather Boost ({ctx.weather})"
+
+    # Fatigue Factor
+    if ctx.fatigue_warning:
+        # e.g. "Arsenal played 72h ago (Rest Disadvantage)"
+        if ctx.fatigue_warning.startswith(row["home_team"]) and outcome == row["away_team"].lower():
+            adj = 0.02 # 2% boost to away team
+            reason = "Fatigue Factor"
+        elif ctx.fatigue_warning.startswith(row["away_team"]) and outcome == row["home_team"].lower():
+            adj = 0.02 # 2% boost to home team
+            reason = "Fatigue Factor"
+
+    return adj, reason

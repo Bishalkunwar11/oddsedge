@@ -1,4 +1,4 @@
-"""Matches router — GET /api/matches (with Redis caching)."""
+"""Matches router — GET /api/matches (with Redis caching + live API fallback)."""
 
 from __future__ import annotations
 
@@ -10,6 +10,7 @@ from app.cache import build_cache_key, cache_get, cache_set
 from app.database import get_db
 from app.redis import get_redis
 from app.services.matches import get_latest_odds
+from app.services.live_data import get_live_odds_rows
 
 router = APIRouter(prefix="/api", tags=["matches"])
 
@@ -22,9 +23,10 @@ async def list_matches(
 ) -> list[dict]:
     """Return upcoming matches with their latest odds.
 
-    Results are cached in Redis for 5 minutes (configurable via
-    ``CACHE_TTL_SECONDS``).  Each match includes an embedded ``odds``
-    list with the most recent snapshot per bookmaker/market/outcome.
+    Data source priority:
+      1. Redis cache (5 min TTL)
+      2. PostgreSQL database
+      3. Live fetch from The Odds API (fallback when DB is empty)
     """
     # --- Cache check ---
     cache_key = build_cache_key("matches", sport_key=sport_key)
@@ -34,6 +36,11 @@ async def list_matches(
 
     # --- DB query ---
     odds_rows = await get_latest_odds(db, sport_keys=sport_key)
+
+    # --- Live API fallback when DB is empty ---
+    if not odds_rows:
+        odds_rows = await get_live_odds_rows(redis_client=redis_client, sport_keys=sport_key)
+
     if not odds_rows:
         return []
 
@@ -59,6 +66,9 @@ async def list_matches(
                 "outcome_price": row["outcome_price"],
                 "point": row["point"],
                 "timestamp": row["timestamp"],
+                "prop_type": row["prop_type"],
+                "player_name": row["player_name"],
+                "is_main_market": row["is_main_market"],
             }
         )
 

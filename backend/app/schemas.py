@@ -51,6 +51,9 @@ class OddsResponse(OddsBase):
 
     id: int
     timestamp: datetime
+    prop_type: str | None = None
+    player_name: str | None = None
+    is_main_market: bool = True
 
     model_config = {"from_attributes": True}
 
@@ -64,37 +67,6 @@ class OddsWithMatch(OddsResponse):
     away_team: str
     commence_time: datetime
 
-
-# ---------------------------------------------------------------------------
-# Feedback
-# ---------------------------------------------------------------------------
-
-
-class FeedbackCreate(BaseModel):
-    """Payload for submitting new feedback."""
-
-    category: str = Field(..., min_length=1, max_length=100)
-    rating: int = Field(..., ge=1, le=5)
-    message: str = Field(..., min_length=1)
-
-    @field_validator("rating")
-    @classmethod
-    def validate_rating(cls, v: int) -> int:
-        if v < 1 or v > 5:
-            raise ValueError("rating must be between 1 and 5 (inclusive)")
-        return v
-
-
-class FeedbackResponse(BaseModel):
-    """Feedback entry returned from the API."""
-
-    id: int
-    category: str
-    rating: int
-    message: str
-    submitted_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 # ---------------------------------------------------------------------------
@@ -125,6 +97,9 @@ class MatchOddsItem(BaseModel):
     outcome_price: float
     point: float | None = None
     timestamp: str
+    prop_type: str | None = None
+    player_name: str | None = None
+    is_main_market: bool = True
 
 
 # Fix forward reference — MatchWithOddsResponse references MatchOddsItem
@@ -167,6 +142,8 @@ class ValueBetResponse(BaseModel):
     bookmaker_prob: float
     consensus_prob: float
     edge: float
+    contextual_adjustment: float = 0.0
+    contextual_reason: str | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -201,26 +178,7 @@ class ParlayResponse(BaseModel):
     profit: float
     implied_probability: float
 
-# ---------------------------------------------------------------------------
-# Line Shopper
-# ---------------------------------------------------------------------------
 
-
-class LineShopperBookie(BaseModel):
-    bookmaker: str
-    outcome_price: float
-    point: float | None = None
-
-
-class LineShopperResponse(BaseModel):
-    """Multi-bookie representation for a single match/prop."""
-
-    match_id: str
-    market: str
-    outcome_name: str
-    best_price: float
-    best_bookmaker: str
-    bookmakers: list[LineShopperBookie]
 
 
 # ---------------------------------------------------------------------------
@@ -297,6 +255,14 @@ class PlayerPropStats(BaseModel):
 # Contextual Edge (Engine 3)
 # ---------------------------------------------------------------------------
 
+class HistoricalMatch(BaseModel):
+    """Simple record of a past encounter."""
+    date: str
+    home_score: int
+    away_score: int
+    winner: str | None
+
+
 class MatchContext(BaseModel):
     """External physical factors influencing the match."""
     match_id: str
@@ -304,3 +270,4 @@ class MatchContext(BaseModel):
     weather_impact: str | None
     referee_style: str
     fatigue_warning: str | None
+    team_h2h_history: list[HistoricalMatch] = []
