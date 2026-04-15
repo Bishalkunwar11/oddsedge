@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from app.schemas import MatchContext
+    pass
 
 from app.config import DEFAULT_EDGE_THRESHOLD, SHARP_BOOKMAKERS
 
@@ -160,7 +160,7 @@ def find_value_bets(
         # --- Engine 3: Apply Contextual Multipliers ---
         adjustment = 0.0
         reason = None
-        
+
         # If we have a context_map and this match has context, apply boosts
         if context_map and row["match_id"] in context_map:
             ctx = context_map[row["match_id"]]

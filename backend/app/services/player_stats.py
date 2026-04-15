@@ -3,11 +3,12 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta
 
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import PlayerGameLog
-from app.schemas import PlayerPropStats, LastGameLog, H2HStats
+from app.schemas import H2HStats, LastGameLog, PlayerPropStats
+
 
 async def get_player_analytics(
     db: AsyncSession,
@@ -17,7 +18,7 @@ async def get_player_analytics(
     opponent: str | None = None
 ) -> PlayerPropStats:
     """Calculate hit rates and fetch historical logs for a specific player prop."""
-    
+
     # 1. Fetch Last 5 Games
     stmt = (
         select(PlayerGameLog)
@@ -36,13 +37,13 @@ async def get_player_analytics(
     last_5_raw = all_logs[:5]
     last_5_logs = []
     hits_l5 = 0
-    
+
     for log in last_5_raw:
         val = getattr(log, prop_type, 0)
         is_hit = val >= line
         if is_hit:
             hits_l5 += 1
-        
+
         last_5_logs.append(LastGameLog(
             opponent=log.opponent,
             date=log.date.strftime("%Y-%m-%d"),
@@ -78,9 +79,7 @@ async def get_player_analytics(
 
 def _generate_fallback_analytics(player_name: str, prop_type: str, line: float, opponent: str | None) -> PlayerPropStats:
     """Internal mock generator for when the DB is empty."""
-    import random
-    from datetime import datetime, timedelta
-    
+
     now = datetime.utcnow()
     opponents = ["Arsenal", "Chelsea", "Man Utd", "Liverpool", "Spurs", "Newcastle"]
     last_5 = []
@@ -95,7 +94,7 @@ def _generate_fallback_analytics(player_name: str, prop_type: str, line: float, 
             value=float(val),
             hit=is_hit
         ))
-    
+
     return PlayerPropStats(
         player_name=player_name.title(),
         prop_type=prop_type,

@@ -17,10 +17,10 @@ from app import models as _models  # noqa: F401
 from app.config import settings
 from app.database import Base, engine
 from app.redis import close_redis, init_redis
-from app.scheduler import start_scheduler, stop_scheduler
 
 # Routers
 from app.routers import analysis, calculator, matches, system
+from app.scheduler import start_scheduler, stop_scheduler
 
 # WebSocket
 from app.ws import live_odds as ws_live_odds

@@ -26,7 +26,12 @@ import redis.asyncio as aioredis
 
 from app.cache import cache_get, cache_set
 from app.config import LEAGUES, settings
-from app.services.api_clients import OddsApiClient, ProviderError, RateLimitError, ProviderTimeoutError
+from app.services.api_clients import (
+    OddsApiClient,
+    ProviderError,
+    ProviderTimeoutError,
+    RateLimitError,
+)
 
 logger = logging.getLogger(__name__)
 
