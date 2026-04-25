@@ -87,7 +87,8 @@ def _generate_fallback_analytics(player_name: str, prop_type: str, line: float, 
     for i in range(5):
         val = max(0.0, round(random.gauss(line, 1.2), 0))
         is_hit = val >= line
-        if is_hit: hits += 1
+        if is_hit:
+            hits += 1
         last_5.append(LastGameLog(
             opponent=opponents[i % len(opponents)],
             date=(now - timedelta(days=(i+1)*7)).strftime("%Y-%m-%d"),

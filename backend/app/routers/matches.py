@@ -11,7 +11,6 @@ from app.database import get_db
 from app.redis import get_redis
 from app.services.live_data import get_live_odds_rows
 from app.services.matches import get_latest_odds
-from app.services.live_data import get_live_odds_rows
 
 router = APIRouter(prefix="/api", tags=["matches"])
 
