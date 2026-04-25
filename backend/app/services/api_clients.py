@@ -139,7 +139,7 @@ class OddsApiClient:
         self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "OddsApiClient":
+    async def __aenter__(self) -> OddsApiClient:
         self._client = httpx.AsyncClient(timeout=self._timeout)
         return self
 
@@ -249,7 +249,7 @@ class ApiFootballClient:
         self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "ApiFootballClient":
+    async def __aenter__(self) -> ApiFootballClient:
         self._client = httpx.AsyncClient(timeout=self._timeout)
         return self
 
@@ -374,7 +374,7 @@ class SportmonksClient:
         self._timeout = timeout
         self._client: httpx.AsyncClient | None = None
 
-    async def __aenter__(self) -> "SportmonksClient":
+    async def __aenter__(self) -> SportmonksClient:
         self._client = httpx.AsyncClient(timeout=self._timeout)
         return self
 

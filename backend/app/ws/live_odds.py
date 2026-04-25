@@ -61,8 +61,8 @@ async def live_odds_ws(websocket: WebSocket) -> None:
         async def _broadcast_loop() -> None:
             """Periodically fetch and broadcast latest odds."""
             import random
-            
-            # Engine 4.1: Sharp Money Alerts 
+
+            # Engine 4.1: Sharp Money Alerts
             SHARP_ALERTS = [
                 "Whale Alert 🐋: $50K tracked on Arsenal ML at Emirates.",
                 "Sharp Movement 📉: Man City Under 2.5 getting hammered across Asian books.",
@@ -70,7 +70,7 @@ async def live_odds_ws(websocket: WebSocket) -> None:
                 "Pro Syndicate 🎯: Group 7 laying the draw heavily in Juventus vs Milan.",
                 "Line Shopping 🏎️: FanDuel extremely slow to move Over lines. Market is +120 elsewhere."
             ]
-            
+
             while True:
                 await asyncio.sleep(settings.ws_broadcast_interval)
                 try:

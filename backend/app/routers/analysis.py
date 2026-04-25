@@ -10,11 +10,12 @@ from app.cache import build_cache_key, cache_get, cache_set
 from app.config import DEFAULT_EDGE_THRESHOLD
 from app.database import get_db
 from app.redis import get_redis
-from app.schemas import ArbitrageResponse, ValueBetResponse, PlayerPropStats, MatchContext
+from app.schemas import ArbitrageResponse, MatchContext, PlayerPropStats, ValueBetResponse
+from app.services.contextual_data import get_match_context
+from app.services.live_data import get_live_odds_rows
 from app.services.matches import get_latest_odds
 from app.services.live_data import get_live_odds_rows
 from app.services.odds_analysis import find_arbitrage, find_value_bets
-from app.services.contextual_data import get_match_context
 from app.services.player_stats import get_player_analytics
 
 router = APIRouter(prefix="/api", tags=["analysis"])

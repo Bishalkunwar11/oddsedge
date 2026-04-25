@@ -66,12 +66,16 @@ async def fetch_daily_fixtures() -> None:
     - Sportmonks free tier: limited daily fixtures — same constraint.
     """
     import datetime
-    from app.services.api_clients import (
-        ApiFootballClient, SportmonksClient,
-        ProviderError, RateLimitError, ProviderTimeoutError,
-    )
-    from app.redis import get_redis
+
     from app.config import settings
+    from app.redis import get_redis
+    from app.services.api_clients import (
+        ApiFootballClient,
+        ProviderError,
+        ProviderTimeoutError,
+        RateLimitError,
+        SportmonksClient,
+    )
 
     logger.info("⏰ [SCHEDULER] Running daily fixture pull — fetching from API-Football + Sportmonks…")
     redis = get_redis()
@@ -117,11 +121,14 @@ async def fetch_hourly_updates() -> None:
     Scheduled: interval  every 60 minutes.
     Lightweight — only refreshes metadata, not full fixture lists.
     """
-    from app.services.api_clients import (
-        SportmonksClient, ProviderError, RateLimitError, ProviderTimeoutError,
-    )
-    from app.redis import get_redis
     from app.config import settings
+    from app.redis import get_redis
+    from app.services.api_clients import (
+        ProviderError,
+        ProviderTimeoutError,
+        RateLimitError,
+        SportmonksClient,
+    )
 
     logger.info("⏰ [SCHEDULER] Running hourly updates — refreshing lineups, referees, weather…")
     redis = get_redis()
@@ -164,8 +171,8 @@ async def fetch_live_odds() -> None:
     The gatekeeper in live_data.py caches results for 5 min, so even though
     this job fires every 60s, real HTTP hits only happen once per TTL window.
     """
-    from app.services.live_data import fetch_and_cache_live_odds
     from app.redis import get_redis
+    from app.services.live_data import fetch_and_cache_live_odds
 
     logger.info("⏰ [SCHEDULER] Fetching live odds from The Odds API…")
     redis = get_redis()

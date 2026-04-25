@@ -36,19 +36,19 @@ def _check_contradictions(legs: list[SmartParlayLeg]) -> list[ParlayContradictio
         for leg in group:
             market_lower = leg.market.lower()
             outcome_lower = leg.outcome_name.lower()
-            
+
             # 1. Total Under vs Scorer check
             if market_lower in ("totals", "over/under", "total goals"):
                 if "under" in outcome_lower and ("1.5" in outcome_lower or "2.5" in outcome_lower):
                     has_low_under = True
                     under_leg = leg
-            
+
             # 2. Player Prop grouping
             if leg.player_name:
                 player_stats.setdefault(leg.player_name, []).append(leg)
                 if leg.prop_type == "player_goals" or "score" in market_lower:
                     player_scorers.append(leg)
-            
+
             # 3. Opposing Winner check
             if market_lower in ("h2h", "moneyline", "match result"):
                 win_outcomes.append(leg)
@@ -107,11 +107,11 @@ def _calculate_score(legs: list[SmartParlayLeg], contradictions: list[ParlayCont
     for leg in legs:
         if leg.player_name:
             player_map[leg.player_name] = player_map.get(leg.player_name, 0) + 1
-    
+
     for _, count in player_map.items():
         if count >= 2:
             # Reward correlation
-            base_score += 10 
+            base_score += 10
 
     return max(0.0, min(100.0, base_score))
 
@@ -135,7 +135,7 @@ def analyze_smart_parlay(request: SmartParlayRequest) -> SmartParlayResponse:
     score = _calculate_score(request.legs, contradictions)
     grade = _assign_grade(score)
 
-    # In a fully connected environment, these would be derived from the database 
+    # In a fully connected environment, these would be derived from the database
     # aggregated odds. For Engine 1.2 structure, we calculate mock payouts.
     # Assuming standard -110 juice (1.9x) per leg for the dummy payout.
     combined_mult = 1.0
