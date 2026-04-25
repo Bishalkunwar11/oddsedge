@@ -118,10 +118,14 @@ def _calculate_score(legs: list[SmartParlayLeg], contradictions: list[ParlayCont
 
 def _assign_grade(score: float) -> str:
     """Map a numeric score to an A-F letter grade."""
-    if score >= 90: return "A"
-    if score >= 75: return "B"
-    if score >= 60: return "C"
-    if score >= 40: return "D"
+    if score >= 90:
+        return "A"
+    if score >= 75:
+        return "B"
+    if score >= 60:
+        return "C"
+    if score >= 40:
+        return "D"
     return "F"
 
 
@@ -129,7 +133,7 @@ def analyze_smart_parlay(request: SmartParlayRequest) -> SmartParlayResponse:
     """
     Main entry point for Engine 1.2:
     Takes a SmartParlayRequest, evaluates correlation safety, and outputs
-    a graded response with line-shopper aggregations. 
+    a graded response with line-shopper aggregations.
     """
     contradictions = _check_contradictions(request.legs)
     score = _calculate_score(request.legs, contradictions)

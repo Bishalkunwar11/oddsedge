@@ -26,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full dark", inter.variable, spaceGrotesk.variable)}>
+    <html lang="en" className={cn("h-full dark", inter.variable, spaceGrotesk.variable)} suppressHydrationWarning>
       <body className="h-full antialiased text-foreground bg-background">
         <AppShell>{children}</AppShell>
       </body>

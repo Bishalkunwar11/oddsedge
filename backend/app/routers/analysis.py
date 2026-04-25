@@ -14,7 +14,6 @@ from app.schemas import ArbitrageResponse, MatchContext, PlayerPropStats, ValueB
 from app.services.contextual_data import get_match_context
 from app.services.live_data import get_live_odds_rows
 from app.services.matches import get_latest_odds
-from app.services.live_data import get_live_odds_rows
 from app.services.odds_analysis import find_arbitrage, find_value_bets
 from app.services.player_stats import get_player_analytics
 
